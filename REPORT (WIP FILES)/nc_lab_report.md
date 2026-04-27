@@ -1,20 +1,18 @@
-# Replicating: "The Title of Paper You Selected From The List"
+# Replicating: HPCC: High Precision Congestion Control
 
 **Team Members:**  
-FirstName LastName1 (email address);  
-FirstName LastName2 (email address);  
-FirstName LastName3 (email address)
+Andrea Bellani ([andrea1.bellani@mail.polimi.it](mailto:andrea1.bellani@mail.polimi.it));
+
+Andrea Migliorini ([andrea1.migliorini@mail.polimi.it](mailto:andrea1.migliorini@mail.polimi.it)).
 
 ---
 
 **Source Paper:**
-Author1, Author2, ...: Title of the paper you selected. In "official name of
-the conference/journal,... ", "Publisher".
 
+Y. Li, R. Miao, H. H. Liu, Y. Zhuang, F. Feng, L. Tang, Z. Cao, M. Zhang, F. Kelly, M. Alizadeh, M. Yu: HPCC: High Precision Congestion Control. In SIGCOMM '19, August 19–23, 2019, Beijing, China, © 2019 Association for Computing Machinery.
 
 **Project:**
-a link to your repository in which you have a reproducible version of the
-experiments you did (only if you wrote new scripts, changed the code, etc.)
+[link to our repository](https://github.com/ImAndreaBellani/NC-Project-2026)
 
 ---
 
