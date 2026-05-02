@@ -37,6 +37,18 @@ The fundamental cause behind these limitations is the lack of a fine-grained net
 Using INT in CC is not straightforward, INT information piggybacked on packets can be delayed by link congestion, which can defer the flow rate reduction for resolving the congestion (i.e. possible delays and/or ovverractions). In addition, there are foundamental challenges (i.e. indipendent by the leveraging of INT) sucb as implementation friendlyness and fairness.
 
 ## Experience and Motivation
+### RDMA into the Alibaba network
+Some basic information regarding Alibaba data center network:
+* three layers Clos topology;
+* each PoD is an indipendent RDMA domain;
+* RoCEv2 with DCQCN as CC;
+* PFC enabled in NICs and switches;
+* go-back-N (i.e. NACK for retrasmission of lost packets)
+RDMA was able to speed up a lot applications w.r.t. previous TCP/IP versions.
+
+### Authors goals for RDMA
+
+
 ## Design
 ## Implementation
 ## Performance Evaluation
