@@ -3,7 +3,7 @@ HPCC is a new high-speed CC (Congestion Control) mechanism which is able to achi
 * ultra-low latency;
 * high bandwidth;
 * network stability;
-in high-speed networks.
+in high-speed networks (however, authors have only tested on RDMA networks).
 
 In particular, it leverages in-network telemetry (INT) to obtain precise link load and it is fair and easy to deploy in hardware (the
 implementation of the article is done with just commodity programmable NICs and switches).
@@ -28,7 +28,14 @@ State-of-art CC mechanism have some essential limitations:
 * slow convergence: the usage of coarse-grained feedback signals (eg. ECN or RTT) lead CC mechanisms to adapt sending rates with heuristics that iteratively try to converge to a stable rate distribution. This "slow convergence" is a particular problem when the CC has to handle large-scale congestion events;
 * unavoidable packet queueing: even if with different approaches, both DCQCN and TIMELY make the sended reduce flow rates only after a queue builds up, which can significantly increase latency;
 * complicated parameter tuning: heuristics of state-of-art CC mechanisms require to tune their parameters on the specific network environment, which is usually complex and time-consuming during daily operations (and there is also an higher risk of coming up with incorrect setting).
-  
+
+The fundamental cause behind these limitations is the lack of a fine-grained network load information in legacy network (at most ECN). But recently, INT (In-network telemetry) features have become available in new ASICs and CC can really benefit from it. HPCC obtains the precise link load information exactly from INT. By doing so, it receives accurate flow rate updates from switches, instead of relying on course-grain infos such as ECN or RTT. And this is basically the secret of HPCC, in particular:
+* senders can quickly and precisely ramp up on ramp down their rates at need;
+* HPCC just requires 3 parameters to tune.
+
+### HPCC challenges
+Using INT in CC is not straightforward, INT information piggybacked on packets can be delayed by link congestion, which can defer the flow rate reduction for resolving the congestion (i.e. possible delays and/or ovverractions). In addition, there are foundamental challenges (i.e. indipendent by the leveraging of INT) sucb as implementation friendlyness and fairness.
+
 ## Experience and Motivation
 ## Design
 ## Implementation
