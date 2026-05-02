@@ -24,7 +24,11 @@ In fact, Alibaba has been using RDMA over Converged Ethernet Version 2 (RoCEv2) 
 * high throughput usually results in deep packet queueing, which undermines the performance of latency-sensitive flows and the ability of the network to handle unexpected congestion.
 
 ### Limitations in the state-of-art CC mechanisms (DCQCN and TIMELY)
-
+State-of-art CC mechanism have some essential limitations:
+* slow convergence: the usage of coarse-grained feedback signals (eg. ECN or RTT) lead CC mechanisms to adapt sending rates with heuristics that iteratively try to converge to a stable rate distribution. This "slow convergence" is a particular problem when the CC has to handle large-scale congestion events;
+* unavoidable packet queueing: even if with different approaches, both DCQCN and TIMELY make the sended reduce flow rates only after a queue builds up, which can significantly increase latency;
+* complicated parameter tuning: heuristics of state-of-art CC mechanisms require to tune their parameters on the specific network environment, which is usually complex and time-consuming during daily operations (and there is also an higher risk of coming up with incorrect setting).
+  
 ## Experience and Motivation
 ## Design
 ## Implementation
