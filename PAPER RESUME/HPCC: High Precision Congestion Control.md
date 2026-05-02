@@ -47,8 +47,21 @@ Some basic information regarding Alibaba data center network:
 RDMA was able to speed up a lot applications w.r.t. previous TCP/IP versions.
 
 ### Authors goals for RDMA
+RDMA networks face more risks and tighter performance requirements than TCP/IP networks:
+* RDMA hosts are aggressive for resources, so they start sending at line rate, which makes common problems like incast much more severe than TCP/IP;
+* PFC pauses all upstream interfaces once it detects a risk of packet loss, and the pauses can propagate via a tree-like graph to multiple hops away, possibly leading to (they are pretty rare):
+  * PFC deadlocks;
+  * PFC storms
+* even in "normal cases" (neither deadlocks nor storms), PFC can still suppress a large number of innocent senders (authors have really experienced that and reported it in figure 1);
+* it often takes months to tune the parameters for RDMA before actual deployment, in order to find a good balance between high performances and stability. Moreover, because different applications have different traffic patterns, and different environments have different topologies, link
+speeds, and switch buffer sizes, operators have to tune parameters
+for the deployment of each new application and new environment.
 
-
+To sum up:
+* latency as low as possible and bandwidth/utilization as high as possible;
+* congestion and PFC pauses as few as possible;
+* (tuning) operational complexity as low as possible.
+  
 ## Design
 ## Implementation
 ## Performance Evaluation
