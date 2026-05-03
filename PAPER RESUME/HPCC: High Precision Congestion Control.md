@@ -3,6 +3,7 @@ HPCC is a new high-speed CC (Congestion Control) mechanism which is able to achi
 * ultra-low latency;
 * high bandwidth;
 * network stability;
+  
 in high-speed networks (however, authors have only tested on RDMA networks).
 
 In particular, it leverages in-network telemetry (INT) to obtain precise link load and it is fair and easy to deploy in hardware (the
@@ -61,7 +62,14 @@ To sum up:
 * latency as low as possible and bandwidth/utilization as high as possible;
 * congestion and PFC pauses as few as possible;
 * (tuning) operational complexity as low as possible.
-  
+
+### Trade-offs in state-of-art RDMA CCs
+From authors experience, tuning DCQCN always struggles in facing two trade-offs:
+* throughput vs. stability: to quickly utilize free network capacity, senders must be highly sensitive to the available bandwidth and increase flow rates fast, but this "aggressive" behavior can easily lead to large scale PFC pauses (authors also show it with an experiment);
+* bandwidth vs. latency: for consistently low latency the network needs to maintain steadily small queues in buffers (which means low ECN marking thresholds), while senders will be too conservative to increase flow rates if ECN marking thresholds are low (also this is shown with a dedicated experiment).
+
+In addition, the timer-based scheduling of DCQCN can also trigger traffic oscillations during link failures and the queue-based feedback of ECN also creates a new trade-off between ECN threshold and PFC threshold.
+
 ## Design
 ## Implementation
 ## Performance Evaluation
