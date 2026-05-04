@@ -82,8 +82,12 @@ HPCC is a sender-driven CC framework. During the propagation of the packet from 
 When the receiver gets the packet, it copies all the meta-data recorded by the switches to the ACK message it sends back to the sender, which uses them to decide how to adjust its flow rate (each time it receives an ACK with network load information).
 
 ### The HPCC algorithm
+HPCC is a window-based scheeme that controls the number of "inflight bytes" (i.e. bytes sent but not yet acknowledged), instead of controlling rates, which has an important advantage compared to controlling rates. Even if in absence of congestion $inflight=rate\times RTT$, controlling inflight bytes greatly improves the tolerance to delayed feedback during congestion. No matter how long the feedback gets delayed, senders will immediately stop sending when the limit is reached (which greatly improves network stability).
 
+#### How senders manage their window
+Each sender maintains a sending window, which limits the inflight bytes it can send. The initial sending window size should be set so that flows can start at line rate, so authors use $W_{init} = B_{NIC}\times T$ (where $T$ is the RTT and $B_{NIC}$ is $NIC$ bandwidth) and the pacing rate at $R=\frac{W}{T}$ (this pacing is done, with just the commodity NICs functionality, to avoid bursty traffic).
 
+#### Congestion signal and control law based on inflight bytes
 
 ## Implementation
 ## Performance Evaluation
