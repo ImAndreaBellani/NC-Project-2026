@@ -71,6 +71,19 @@ From authors experience, tuning DCQCN always struggles in facing two trade-offs:
 In addition, the timer-based scheduling of DCQCN can also trigger traffic oscillations during link failures and the queue-based feedback of ECN also creates a new trade-off between ECN threshold and PFC threshold.
 
 ## Design
+Leveraging INT for getting precise traffic and queues information poses two major challenges:
+* during congestions, feedback signals can be delayed, results in a significantly more inflight data than the Bandwidth-delay product for each sender.  To avoid this problem, HPCC directly controls the number of inflight bytes (in contrast to DCQCN and TIMELY that only control the sending rate). In this way, even if feedback signals are delayed, the senders do not send excessive packets because the total inflight bytes are limited;
+* while a HPCC sender can react to network load information in each ACK, it must carefully navigate the tension between reacting quickly and overreacting to congestion feedback. So, authors combine RTT-based and ACK-based reactions to overcome this tension.
+  
+![The overview of HPCC framework.](<figures/figure 4.png> "The overview of HPCC framework.")
+
+HPCC is a sender-driven CC framework. During the propagation of the packet from the sender to the receiver, each switch along the path leverages the INT feature of its switching ASIC to insert some meta-data that reports the current load of the packet’s egress port (eg. timestamp, queue length, transmitted bytes ecc.).
+
+When the receiver gets the packet, it copies all the meta-data recorded by the switches to the ACK message it sends back to the sender, which uses them to decide how to adjust its flow rate (each time it receives an ACK with network load information).
+
+### The HPCC algorithm
+
+
 
 ## Implementation
 ## Performance Evaluation
