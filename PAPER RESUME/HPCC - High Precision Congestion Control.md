@@ -90,4 +90,11 @@ Each sender maintains a sending window, which limits the inflight bytes it can s
 #### Congestion signal and control law based on inflight bytes
 
 ## Implementation
+The prototype of HPCC was implemented on commodity NICs with FPGA and commodity switching ASICs with P4 programmability. In particualar:
+
+* on swithces: INT features are implemeneted;
+* on NICs: the actual HPCC implementation.
+  
+In addition, authors have also implemented DCQCN just for comparison.
+
 ## Performance Evaluation
