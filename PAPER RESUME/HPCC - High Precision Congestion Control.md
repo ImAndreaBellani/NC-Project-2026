@@ -104,15 +104,22 @@ Each sender maintains a sending window, which limits the inflight bytes it can s
 
 The initial sending window size should be set so that flows can start at line rate, so authors use $W_{init} = B_{NIC}\times T$ (where $T$ is the RTT and $B_{NIC}$ is $NIC$ bandwidth) and the pacing rate at $R=\frac{W}{T}$ (this pacing is done, with just the commodity NICs functionality, to avoid bursty traffic).
 
-#### How congestion signals are fired
-Given a generic link $j$, a congestion happens if $I_j = \sum_{i\in Flows(L)} W_i \ge B\times T$, where $B$ is the bandwidth of $j$, $T$ is the RTT (that we assume constant and homogeneous in the network topology) and $W_i$ is the window size of the flow $i$ traversing $j$. The goal is that each sender keeps its $W$ at a size that avoids congestions.
+#### How congestion signals are fired and windows are controlled
+Given a generic link $j$, a congestion happens if $I_j = \sum_{i\in Flows(L)} W_i \ge B_j\times T$, where $B_j$ is the bandwidth of $j$, $T$ is the RTT (that we assume constant and homogeneous in the network topology) and $W_i$ is the window size of the flow $i$ traversing $j$. The goal is that each sender keeps its $W$ at a size that avoids congestions (to be precise, we set a parameter $\eta\to 1$ and try to achive $I_j = \eta \times B_j\times T$.
 
 In general, $I_j$, which represents the number of infligh-bytes over $j$ is a sum of two components: $I_j = qlen_j + txRate_j\times T$, where $qlen_j$ is the queue lenght on link $j$.
 
+In order to achive the goal, a sender reduces its window of a factor (considering the generic link $j$):
+* $k_j = \frac{I_j}{\eta\times B_j\times T} = \frac{1}{\eta}*(\frac{qlen_j}{B_j\times T} + \frac{txRate_j}{B_j})$
+which applied to the "worst" link the sender is sending over:
+* $k_{max} = max_j(k_j)$
+So, the window of a generic sender is:
+* $W_i = \frac{W_i}{k_{max,i}}+W_{AI}$
+where $W_{AI}<<W_i$ is an additive increase to ensure fairness.
 
-
-#### HPCC control laws
-based on inflight bytes
+Observations:
+* $I_j = qlen_j + txRate_j\times T$ is an under-estimatation in case of multiple bottlenecks (WHY?), so HPCC requires multiple rounds to resolve the congestion however, during incast (which is the most common congestion case in data center according to [39]) there is only one bottleneck;
+* 
 
 ## Implementation
 The prototype of HPCC was implemented on commodity NICs with FPGA and commodity switching ASICs with P4 programmability. In particualar:
