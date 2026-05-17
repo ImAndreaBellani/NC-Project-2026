@@ -75,27 +75,44 @@ In addition, the timer-based scheduling of DCQCN can also trigger traffic oscill
 
 ## Design
 Leveraging INT for getting precise traffic and queues information poses some challenge:
-during congestions, feedback signals can be delayed, which results in a significantly more inflight data than the Bandwidth-delay product for each sender, worsening congestion even more. 
-Then to reduce the time between adjustments, one could react to the information carried by single ACKs, instead of RTT techniques, but this may cause instability in the network, since the sender may overreact from a single response.
+
+* during congestions, feedback signals can be delayed, which results in a significantly more inflight data than the Bandwidth-delay product for each sender, worsening congestion even more;
+* senders must carefully navigate the tension between reacting quickly and overreacting to congestion feedback.
 
 To deal with these challenges:
-1. HPCC directly controls the number of inflight bytes (in contrast to DCQCN and TIMELY that only control the sending rate). This way, even if feedback signals are delayed, the senders do not send excessive packets congesting the system.
+1. HPCC directly controls the number of inflight bytes (in contrast to DCQCN and TIMELY that only control the sending rate). This way, even if feedback signals are delayed, the senders do not send excessive packets congesting the system;
+2. HPCC combines RTT-based and ACK-based reactions to overcome the tension in reacting, combining INT information from multiple messages at a time.
+
 ![The overview of HPCC framework.](<figures/figure 4.png> "The overview of HPCC framework.")
-2. HPCC combines RTT-based and ACK-based reactions to overcome this tension, combining INT information from multiple messages at a time.
 
 During the propagation of the packet from the sender to the receiver, each switch along the path leverages the INT feature of its switching ASIC to insert some meta-data that reports the current load of the packet’s egress port (eg. timestamp, queue length, transmitted bytes ecc.).
 When the receiver gets the packet, it copies all the meta-data recorded by the switches to the ACK message it sends back to the sender, which uses them to decide how to adjust its flow rate (each time it receives an ACK with network load information).
 >[!warning]
-> this is just how normal INT works, so if we should either swap it at the start of the design section or maybe remove it
+> this is just how normal INT works, so if we should either swap it at the start of the design section or maybe remove it (comment: to me is fine here, but when we write the final report we have to move it somewhere else)
 
-### The HPCC algorithmx
-HPCC is a sender-driven CC framework, HPCC is a window-based scheme that controls the number of "inflight bytes" (i.e. bytes sent but not yet acknowledged), instead of controlling rates, which has an important advantage compared to controlling rates. 
-Even if in absence of congestion $inflight=rate\times RTT$, controlling inflight bytes greatly improves the tolerance to delayed feedback during congestion. No matter how long the feedback gets delayed, senders will immediately stop sending when the limit is reached (which greatly improves network stability).
+### The HPCC algorithm
+HPCC is a window-based scheme that controls the number of "inflight bytes" (i.e. bytes sent but not yet acknowledged), instead of controlling rates, which has an important advantage compared to controlling rates. 
+Even if in absence of congestion $inflight=rate\times RTT$, controlling inflight bytes greatly improves the tolerance to delayed feedback during congestion, since controlling it, no matter how long the feedback gets delayed, permits to senders to immediately stop sending when the limit is reached (which greatly improves network stability).
+
+We can divide the whole HPCC algorithm into three components:
+* window management laws;
+* congestion signals laws;
+* control laws.
 
 #### How senders manage their window
-Each sender maintains a sending window, which limits the inflight bytes it can send. The initial sending window size should be set so that flows can start at line rate, so authors use $W_{init} = B_{NIC}\times T$ (where $T$ is the RTT and $B_{NIC}$ is $NIC$ bandwidth) and the pacing rate at $R=\frac{W}{T}$ (this pacing is done, with just the commodity NICs functionality, to avoid bursty traffic).
+Each sender maintains a sending window, which limits the inflight bytes it can send. Note that this is also the standard approach of TCP however, in datacenter we have a strong difference between RTT (which is generally ultra-low compared to classic IP networks) and queueing delayes (which is the feedback delay for us).
 
-#### Congestion signal and control law based on inflight bytes
+The initial sending window size should be set so that flows can start at line rate, so authors use $W_{init} = B_{NIC}\times T$ (where $T$ is the RTT and $B_{NIC}$ is $NIC$ bandwidth) and the pacing rate at $R=\frac{W}{T}$ (this pacing is done, with just the commodity NICs functionality, to avoid bursty traffic).
+
+#### How congestion signals are fired
+Given a generic link $j$, a congestion happens if $I_j = \sum_{i\in Flows(L)} W_i \ge B\times T$, where $B$ is the bandwidth of $j$, $T$ is the RTT (that we assume constant and homogeneous in the network topology) and $W_i$ is the window size of the flow $i$ traversing $j$. The goal is that each sender keeps its $W$ at a size that avoids congestions.
+
+In general, $I_j$, which represents the number of infligh-bytes over $j$ is a sum of two components: $I_j = qlen_j + txRate_j\times T$, where $qlen_j$ is the queue lenght on link $j$.
+
+
+
+#### HPCC control laws
+based on inflight bytes
 
 ## Implementation
 The prototype of HPCC was implemented on commodity NICs with FPGA and commodity switching ASICs with P4 programmability. In particualar:
