@@ -49,7 +49,8 @@ Some basic information regarding Alibaba data center network:
 * go-back-N (i.e. NACK for retrasmission of lost packets)
 RDMA was able to speed up a lot applications w.r.t. previous TCP/IP versions.
 >[!warning]
->is this really necessary? its not incorrect but we arent really levaraging the "Alibaba experience" in our summary 
+>is this really necessary? its not incorrect but we arent really levaraging the "Alibaba experience" in our summary
+>comment: yes. It's an overview of what Alibaba does. It may not be included into the introduction of the final summary, but I think it is important to have it here.
 ### Authors goals for RDMA
 RDMA networks face more risks and tighter performance requirements than TCP/IP networks:
 * RDMA hosts are aggressive for resources, they start sending at line rate, which makes common problems like incast much more severe than TCP/IP;
