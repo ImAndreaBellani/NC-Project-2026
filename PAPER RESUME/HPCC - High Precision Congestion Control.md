@@ -3,10 +3,11 @@ HPCC is a new high-speed CC (Congestion Control) mechanism which is able to achi
 * ultra-low latency;
 * high bandwidth;
 * network stability;
+* fair connections:
   
 in high-speed networks (however, authors have only tested on RDMA networks).
 
-In particular, it leverages in-network telemetry (INT) to obtain precise link load and it is fair and easy to deploy in hardware (the
+In particular, it leverages in-network telemetry (INT) to obtain precise link load and easily deploy it in hardware (the
 implementation of the article is done with just commodity programmable NICs and switches).
 
 ## Introduction
@@ -92,14 +93,19 @@ When the receiver gets the packet, it copies all the meta-data recorded by the s
 > this is just how normal INT works, so if we should either swap it at the start of the design section or maybe remove it (comment: to me is fine here, but when we write the final report we have to move it somewhere else)
 
 ### The HPCC algorithm
-HPCC is a window-based scheme that controls the number of "inflight bytes" (i.e. bytes sent but not yet acknowledged), instead of controlling rates, which has an important advantage compared to controlling rates. 
-Even if in absence of congestion $inflight=rate\times RTT$, controlling inflight bytes greatly improves the tolerance to delayed feedback during congestion, since controlling it, no matter how long the feedback gets delayed, permits to senders to immediately stop sending when the limit is reached (which greatly improves network stability).
+HPCC is a window-based scheme that controls the number of "inflight bytes" (i.e. bytes sent but not yet acknowledged), instead of controlling rates. 
+This offers a great advantage: even in absence of feedback signals, that may get delayed, senders will stop sending new packets when the window limit is reached.
 
 We can divide the whole HPCC algorithm into three components:
+>[!warning]
+> i am very confused by what you mean by this
 * window management laws;
 * congestion signals laws;
 * control laws.
 
+
+>[!warning]
+> i dont think expanding this much isnt that useful, i think just explaining the algorithm should be fine, i am just going to rewrite everything before the implementation
 #### How senders manage their window
 Each sender maintains a sending window, which limits the inflight bytes it can send. Note that this is also the standard approach of TCP however, in datacenter we have a strong difference between RTT (which is generally ultra-low compared to classic IP networks) and queueing delayes (which is the feedback delay for us).
 
@@ -121,6 +127,8 @@ where $W_{AI}<<W_i$ is an additive increase to ensure fairness.
 Observations:
 * $I_j = qlen_j + txRate_j\times T$ is an under-estimatation in case of multiple bottlenecks (WHY?), so HPCC requires multiple rounds to resolve the congestion however, during incast (which is the most common congestion case in data center according to [39]) there is only one bottleneck;
 * 
+### How senders manage their window
+Each sender mantains their sending window which limits the inflight bytes. $I_j$ 
 
 ## Implementation
 The prototype of HPCC was implemented on commodity NICs with FPGA and commodity switching ASICs with P4 programmability. In particualar:
