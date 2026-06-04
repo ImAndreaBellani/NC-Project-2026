@@ -24,6 +24,31 @@ Introduce the paper by summarizing:
 - The key ideas behind its solution and its approach
 - The main contributions
 
+HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks.
+
+## 1.1. The problem HPCC wants to address
+
+HPCC aims to improve congestion control in datacenters high-speed networks. By focusing on Congestion Control in RDMA networks, it tries both to address the well-known problems that motivate the usage of congestion control mechanisms in RDMA networks and to overcome limitations of state-of-art Congestion Control mechanism for RDMA networks (in particular, DCQCN and TIMELY):
+* well-known problems that require congestion control in RDMA networks:
+  - throughput maximization;
+  - latency minimization;
+  - high burst-tolerance;
+* main limitations of state-of-art Congestion Control mechanisms for RDMA networks:
+  - easy-to-deploy;
+  - slow convergence due to leveraging of heuristic approaches;
+  - difficult parameters tuning.
+
+## 1.2. Key ideas behind HPCC
+The essential feature that HPCC leverages to out-perform its competitors is INT (In-Network Telemetry):
+
+In fact, using INT enables HPCC to obtain precise flows information which other state-of-art CC mechanisms usually aquire with a much slower convergence.
+
+HPCC is at his core a window-based congestion Control algorithm that keeps monitoring the number of inflight bytes.
+
+## 1.3 Brief explanation of HPCC
+
+## HPCC main contributions
+
 # 2. Selected Result
 
 Mention which result of the paper you are reproducing, and explain its importance.
