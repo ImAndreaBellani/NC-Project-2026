@@ -197,10 +197,9 @@ def grafica_throughput_per_flow(flows, start_t, end_t):
     for f in flows:
         throughput_per_flow[f] = []
 
-    for t in range(start_t, end_t, 5000):
+    for t in range(start_t, end_t, 500):
         for f in flows:
             app_last_index_x = last_indexes[f]["x"]
-            last_elem_X = None
 
             for i in range(last_indexes[f]["x"], len(flows[f]["throughput"])):
                 if flows[f]["throughput"][i]["time"] <= t:
@@ -210,12 +209,15 @@ def grafica_throughput_per_flow(flows, start_t, end_t):
                     break
 
             last_indexes[f] = {"x": app_last_index_x}
+            if t > flows[f]["throughput"][-1]["time"]:
+                value = 0
+            else:
+                value = last_elem_X["value"] * 8
 
-            if last_elem_X is not None:
-                throughput_per_flow[f].append({
-                    "time": (t - start_t) / 1000,
-                    "value": last_elem_X["value"]*8
-                })
+            throughput_per_flow[f].append({
+                "time": (t - start_t) / 1000,
+                "value": value
+            })
 
     # Creare il grafico
     plt.figure(figsize=(12, 6))
@@ -292,9 +294,10 @@ if __name__ == "__main__":
                 else:
                     app_last_index_x = i
                     break
+            if t > flows[f]["throughput"][-1]["time"]:
+                last_elem_X = {"time": t, "value": 0}
 
             last_indexes_f[f] = app_last_index_x
-
             sum += last_elem_X["value"]
 
         aggregate_throughput.append({
@@ -302,32 +305,27 @@ if __name__ == "__main__":
             "value": sum * 8
         })
 
+
     for t in range(start_t, end_t, 500):
         sum = 0
         for q in queues:
             app_last_index_x = last_indexes_q[q]
             for i in range(last_indexes_q[q], len(queues[q]["lengths"])):
                 if queues[q]["lengths"][i]["time"] <= t:
-                    last_elem_X = queues[q]["lengths"][i]
+                    last_elem_Q = queues[q]["lengths"][i]
                 else:
                     app_last_index_x = i
                     break
 
+
             last_indexes_q[q] = app_last_index_x
 
-            sum += last_elem_X["value"]
+            sum += last_elem_Q["value"]
 
         aggregate_queue.append({
             "time": (t - start_t) / 1000,
             "value": sum / 1000
         })
 
-
-
     grafica_throughput_aggregato(aggregate_throughput)
     grafica_qlen_aggregato(aggregate_queue)
-
-    '''
-    cose ancora da fare:
-    -> secondo me c'è un piccolo problema nei grafici del throughput, ovvero quando un flow "termina", sembra che il suo ultimo throughput conti nella somma (o nei grafici non aggregati)
-    '''
