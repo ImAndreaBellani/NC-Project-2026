@@ -3,15 +3,16 @@
 Analizza trace ns-3 per calcolare throughput e latenza per flow
 Trace format: tempo n:node intf:qidx qidx qlen ecn:sip dip sport dport prot seq ts pg size(payload)
 """
-
+import shutil
 from pathlib import Path
 from collections import defaultdict
 import argparse
 
 import plt
 
-INPUT_FOLDER_ROOT = "data/input/mix_topology_flow_hp95ai50.tr.txt"
-
+FILE_NAME = "mix_incast_incastflow_hp95ai100.tr"
+INPUT_FOLDER_ROOT = "data\\input\\"+FILE_NAME+".txt"
+OUTPUT_FOLDER = "data\\output\\"+FILE_NAME+"\\"
 
 class Trace:
     def __init__(self, linea):
@@ -110,11 +111,11 @@ def calcola_throughput_e_queues_lengths(nome_file):
 
 
 def identifica_flow_id(trace):
-    return f"[{trace.protocol}]{trace.sip}:{trace.sp}->{trace.dip}:{trace.dp}"
+    return f"{trace.sip}:{trace.sp}->{trace.dip}:{trace.dp}"
 
 
 def reverse_identifica_flow_id(trace):
-    return f"[{trace.protocol}]{trace.dip}:{trace.dp}->{trace.sip}:{trace.sp}"
+    return f"{trace.dip}:{trace.dp}->{trace.sip}:{trace.sp}"
 
 
 def grafica_throughput_aggregato(aggregate_throughput):
@@ -143,7 +144,7 @@ def grafica_throughput_aggregato(aggregate_throughput):
 
     # Salva il grafico
     plt.tight_layout()
-    plt.savefig('throughput_aggregato.png', dpi=150, bbox_inches='tight')
+    plt.savefig(OUTPUT_FOLDER+'throughput_aggregato.png', dpi=150, bbox_inches='tight')
     print("\nGrafico salvato in: throughput_aggregato.png")
 
     # Mostra il grafico (opzionale, utile in ambiente interactivo)
@@ -176,7 +177,7 @@ def grafica_qlen_aggregato(aggregate_qlen):
 
     # Salva il grafico
     plt.tight_layout()
-    plt.savefig('qlen_aggregato.png', dpi=150, bbox_inches='tight')
+    plt.savefig(OUTPUT_FOLDER+'qlen_aggregato.png', dpi=150, bbox_inches='tight')
     print("\nGrafico salvato in: qlen_aggregato.png")
 
     # Mostra il grafico (opzionale, utile in ambiente interactivo)
@@ -246,7 +247,7 @@ def grafica_throughput_per_flow(flows, start_t, end_t):
 
     # Salva il grafico
     plt.tight_layout()
-    plt.savefig('throughput_per_flow.png', dpi=150, bbox_inches='tight')
+    plt.savefig(OUTPUT_FOLDER+'throughput_per_flow.png', dpi=150, bbox_inches='tight')
     print("\nGrafico salvato in: throughput_per_flow.png")
 
     # Mostra il grafico (opzionale, utile in ambiente interactivo)
@@ -266,10 +267,13 @@ if __name__ == "__main__":
     flows, queues = calcola_throughput_e_queues_lengths(input_path)
     print(flows.keys())
     print(queues.keys())
-
+    cartella = Path(OUTPUT_FOLDER)
+    if cartella.exists():
+        shutil.rmtree(cartella)  # La ricrea vuota cartella.mkdir(parents=True)
+    cartella.mkdir(parents=True)
     # Nuova chiamata: grafico throughput per ogni flow (N curve)
     start_t = 2000000000
-    end_t = 2036696193
+    end_t = 2001000000
     grafica_throughput_per_flow(flows, start_t, end_t)
 
     aggregate_throughput = []
@@ -283,8 +287,8 @@ if __name__ == "__main__":
         last_indexes_q[q] = 0
 
     start_t = 2000000000
-    end_t = 2036696193
-    for t in range(start_t, end_t, 500):
+    end_t = 2000400000
+    for t in range(start_t, end_t, 6000):
         sum = 0
         for f in flows:
             app_last_index_x = last_indexes_f[f]
@@ -300,13 +304,15 @@ if __name__ == "__main__":
             last_indexes_f[f] = app_last_index_x
             sum += last_elem_X["value"]
 
+        if (sum * 8 > 100):
+            sum = 100/8
         aggregate_throughput.append({
             "time": (t - start_t) / 1000,
             "value": sum * 8
         })
 
 
-    for t in range(start_t, end_t, 500):
+    for t in range(start_t, end_t, 6000):
         sum = 0
         for q in queues:
             app_last_index_x = last_indexes_q[q]
