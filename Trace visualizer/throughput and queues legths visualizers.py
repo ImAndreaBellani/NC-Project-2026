@@ -10,7 +10,7 @@ import argparse
 
 import plt
 
-FILE_NAME = "mix_incast_incastflow_hp95ai600.tr"
+FILE_NAME = "mix_incast_incastflow_hp95ai300.tr"
 INPUT_FOLDER_ROOT = "data\\input\\"+FILE_NAME+".txt"
 OUTPUT_FOLDER = "data\\output\\"+FILE_NAME+"\\"
 
@@ -68,34 +68,36 @@ def calcola_throughput_e_queues_lengths(nome_file):
                 tr = Trace(linea)
                 flow_id = identifica_flow_id(tr)
                 queue_id = identifica_queue_id(tr)
-                if tr.type == "ACK":
+                if tr.type == "ACK" and tr.protocol == "Recv":
                     flow_id = reverse_identifica_flow_id(tr)
-                    if flows[flow_id]["last acknowledged"] >= tr.seq:
-                        continue
-                    sum = 0
+                    if (tr.dip+":"+tr.dp) == flows[flow_id]["source"]:
+                        if flows[flow_id]["last acknowledged"] >= tr.seq:
+                            continue
+                        sum = 0
 
-                    keys_to_remove = []
-                    for data in flows[flow_id]["data received"]:
-                        if int(data) >= flows[flow_id]["last acknowledged"] and int(data) < tr.seq:
-                            sum += flows[flow_id]["data received"][data]
-                            keys_to_remove.append(data)
+                        keys_to_remove = []
+                        for data in flows[flow_id]["data received"]:
+                            if int(data) >= flows[flow_id]["last acknowledged"] and int(data) < tr.seq:
+                                sum += flows[flow_id]["data received"][data]
+                                keys_to_remove.append(data)
 
-                    for k in keys_to_remove:
-                        del flows[flow_id]["data received"][k]
+                        for k in keys_to_remove:
+                            del flows[flow_id]["data received"][k]
 
-                    flows[flow_id]["last acknowledged"] = tr.seq
-                    value = sum / (tr.time - flows[flow_id]["throughput"][-1]["time"])
-                    flows[flow_id]["throughput"].append({
-                        "time": tr.time,
-                        "value": value
-                    })
+                        flows[flow_id]["last acknowledged"] = tr.seq
+                        value = sum / (tr.time - flows[flow_id]["throughput"][-1]["time"])
+                        flows[flow_id]["throughput"].append({
+                            "time": tr.time,
+                            "value": value
+                        })
 
                 elif tr.type == "DATA":
                     if not flow_id in flows:
                         flows[flow_id] = {
                             "throughput": [{"time": 2000000000, "value": 0}],
                             "data received": {},
-                            "last acknowledged": 0
+                            "last acknowledged": 0,
+                            "source": tr.sip+":"+tr.sp
                         }
                     flows[flow_id]["data received"][str(tr.seq)] = tr.size
 
@@ -288,7 +290,7 @@ if __name__ == "__main__":
 
     start_t = 2000000000
     end_t = 2000400000
-    for t in range(start_t, end_t, 6000):
+    for t in range(start_t, end_t, 7000):
         sum = 0
         for f in flows:
             app_last_index_x = last_indexes_f[f]
@@ -312,7 +314,7 @@ if __name__ == "__main__":
         })
 
 
-    for t in range(start_t, end_t, 6000):
+    for t in range(start_t, end_t, 7000):
         sum = 0
         for q in queues:
             app_last_index_x = last_indexes_q[q]
@@ -326,7 +328,7 @@ if __name__ == "__main__":
 
             last_indexes_q[q] = app_last_index_x
 
-            sum += last_elem_Q["value"]
+            sum = max(sum, last_elem_Q["value"])
 
         aggregate_queue.append({
             "time": (t - start_t) / 1000,
