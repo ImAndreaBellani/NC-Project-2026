@@ -10,10 +10,11 @@ import argparse
 
 import plt
 
-FILE_NAME = "mix_incast_incastflow_hp95ai300.tr"
+FILE_NAME = "mix_incast_incastflow3_hp95ai300.tr"
 INPUT_FOLDER_ROOT = "data\\input\\"+FILE_NAME+".txt"
 OUTPUT_FOLDER = "data\\output\\"+FILE_NAME+"\\"
 
+OUTPUT_INTERVAL = 1500
 class Trace:
     def __init__(self, linea):
         self.elementi = linea.split(" ")
@@ -28,7 +29,7 @@ class Trace:
                 self.intf = int(self.elementi[2].split(":")[0])
                 self.qidx = int(self.elementi[2].split(":")[1])
                 self.qlen = int(self.elementi[3])
-                self.protocol = self.elementi[4]
+                self.event_kind = self.elementi[4]
                 self.ecn = int(self.elementi[5].split(":")[1]) == 1
                 self.sip = self.elementi[6]
                 self.dip = self.elementi[7]
@@ -43,7 +44,7 @@ class Trace:
                 self.intf = int(self.elementi[2].split(":")[0])
                 self.qidx = int(self.elementi[2].split(":")[1])
                 self.qlen = int(self.elementi[3])
-                self.protocol = self.elementi[4]
+                self.event_kind = self.elementi[4]
                 self.ecn = int(self.elementi[5].split(":")[1]) == 1
                 self.sip = self.elementi[6]
                 self.dip = self.elementi[7]
@@ -68,7 +69,7 @@ def calcola_throughput_e_queues_lengths(nome_file):
                 tr = Trace(linea)
                 flow_id = identifica_flow_id(tr)
                 queue_id = identifica_queue_id(tr)
-                if tr.type == "ACK" and tr.protocol == "Recv":
+                if tr.type == "ACK" and tr.event_kind == "Enqu":
                     flow_id = reverse_identifica_flow_id(tr)
                     if (tr.dip+":"+tr.dp) == flows[flow_id]["source"]:
                         if flows[flow_id]["last acknowledged"] >= tr.seq:
@@ -76,7 +77,7 @@ def calcola_throughput_e_queues_lengths(nome_file):
                         sum = 0
 
                         keys_to_remove = []
-                        for data in flows[flow_id]["data received"]:
+                        for data in flows[flow_id]["data received"].keys():
                             if int(data) >= flows[flow_id]["last acknowledged"] and int(data) < tr.seq:
                                 sum += flows[flow_id]["data received"][data]
                                 keys_to_remove.append(data)
@@ -85,28 +86,27 @@ def calcola_throughput_e_queues_lengths(nome_file):
                             del flows[flow_id]["data received"][k]
 
                         flows[flow_id]["last acknowledged"] = tr.seq
-                        value = sum / (tr.time - flows[flow_id]["throughput"][-1]["time"])
-                        flows[flow_id]["throughput"].append({
-                            "time": tr.time,
-                            "value": value
-                        })
+                        value = sum / (tr.time - flows[flow_id]["last time acknowledged"])
+                        flows[flow_id]["throughput"][str(tr.time)] = value
+                        flows[flow_id]["last time acknowledged"] = tr.time
 
                 elif tr.type == "DATA":
                     if not flow_id in flows:
                         flows[flow_id] = {
-                            "throughput": [{"time": 2000000000, "value": 0}],
+                            "throughput": {},
                             "data received": {},
                             "last acknowledged": 0,
+                            "last time acknowledged": tr.time,
                             "source": tr.sip+":"+tr.sp
                         }
                     flows[flow_id]["data received"][str(tr.seq)] = tr.size
 
                 if not queue_id in queues:
                     queues[queue_id] = {
-                        "lengths": [{"time": 2000000000, "value": 0}],
+                        "lengths": {},
                     }
 
-                queues[queue_id]["lengths"].append({"time": tr.time, "value": tr.qlen})
+                queues[queue_id]["lengths"][str(tr.time)] = tr.qlen
 
 
     return flows, queues
@@ -119,72 +119,74 @@ def identifica_flow_id(trace):
 def reverse_identifica_flow_id(trace):
     return f"{trace.dip}:{trace.dp}->{trace.sip}:{trace.sp}"
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+mpl.rcParams.update({
+    'figure.figsize': (7.0, 3.0),
+    'figure.dpi': 150,
+    'font.family': 'serif',
+    'font.serif': ['Times New Roman', 'DejaVu Serif'],
+    'font.size': 13,
+    'axes.titlesize': 15,
+    'axes.labelsize': 13,
+    'axes.linewidth': 1.2,
+    'xtick.labelsize': 11,
+    'ytick.labelsize': 11,
+    'xtick.direction': 'in',
+    'ytick.direction': 'in',
+    'xtick.major.size': 4,
+    'ytick.major.size': 4,
+    'xtick.major.width': 1.0,
+    'ytick.major.width': 1.0,
+    'legend.fontsize': 11,
+    'legend.frameon': False,
+    'lines.linewidth': 1.8,
+    'savefig.bbox': 'tight',
+})
+
+def _stile_assi(ax):
+    ax.tick_params(axis='both', which='major', labelsize=11, width=1.0, length=4, direction='in')
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.2)
 
 def grafica_throughput_aggregato(aggregate_throughput):
-    """Crea un grafico 2D del throughput aggregato in funzione del tempo (1 sola curva)"""
-
-    # Extraere tempi e valori
     tempi = [elem["time"] for elem in aggregate_throughput]
     throughput = [elem["value"] for elem in aggregate_throughput]
 
-    # Creare il grafico
-    plt.figure(figsize=(12, 6))
-    plt.plot(tempi, throughput, 'b-', linewidth=2, label='Throughput Aggregato')
+    fig, ax = plt.subplots(figsize=(7.0, 3.0), dpi=150)
+    ax.plot(tempi, throughput, color='#5DADE2', linewidth=1.8, label='HPCC')
 
-    # Titoli e label
-    plt.xlabel('Tempo (us)', fontsize=12)
-    plt.ylabel('Throughput (Gbps)', fontsize=12)
-    plt.title('Throughput Aggregato in Funzione del Tempo', fontsize=14)
+    ax.set_xlabel('Time (us)')
+    ax.set_ylabel('Throughput (Gbps)')
+    ax.set_title('Throughput vs Time')
 
-    # Grid e legenda
-    plt.grid(True, alpha=0.3)
-    plt.legend(loc='best', fontsize=10)
+    _stile_assi(ax)
+    ax.legend(loc='center left', bbox_to_anchor=(0.53, 0.58), frameon=False)
 
-    # Formattare l'asse x per numeri grandi
-    plt.xticks(rotation=45, fontsize=10)
-    plt.yticks(fontsize=10)
-
-    # Salva il grafico
-    plt.tight_layout()
-    plt.savefig(OUTPUT_FOLDER+'throughput_aggregato.png', dpi=150, bbox_inches='tight')
-    print("\nGrafico salvato in: throughput_aggregato.png")
-
-    # Mostra il grafico (opzionale, utile in ambiente interactivo)
+    fig.tight_layout()
+    plt.savefig(OUTPUT_FOLDER + 'throughput_aggregato.png', dpi=150, bbox_inches='tight')
     plt.show()
-
+    plt.close(fig)
 
 def grafica_qlen_aggregato(aggregate_qlen):
-    """Crea un grafico 2D del throughput aggregato in funzione del tempo (1 sola curva)"""
-
-    # Extraere tempi e valori
     tempi = [elem["time"] for elem in aggregate_qlen]
     qlen = [elem["value"] for elem in aggregate_qlen]
 
-    # Creare il grafico
-    plt.figure(figsize=(12, 6))
-    plt.plot(tempi, qlen, 'b-', linewidth=2, label='Qlen Aggregate')
+    fig, ax = plt.subplots(figsize=(7.0, 3.0), dpi=150)
+    ax.plot(tempi, qlen, color='#5DADE2', linewidth=1.8, label='HPCC')
 
-    # Titoli e label
-    plt.xlabel('Tempo (us)', fontsize=12)
-    plt.ylabel('Qlen (KBytes)', fontsize=12)
-    plt.title('Qlen Aggregate in Funzione del Tempo', fontsize=14)
+    ax.set_xlabel('Time (us)')
+    ax.set_ylabel('Queue length (KBytes)')
+    ax.set_title('Queue length vs Time')
 
-    # Grid e legenda
-    plt.grid(True, alpha=0.3)
-    plt.legend(loc='best', fontsize=10)
+    _stile_assi(ax)
+    ax.legend(loc='center left', bbox_to_anchor=(0.53, 0.58), frameon=False)
 
-    # Formattare l'asse x per numeri grandi
-    plt.xticks(rotation=45, fontsize=10)
-    plt.yticks(fontsize=10)
-
-    # Salva il grafico
-    plt.tight_layout()
-    plt.savefig(OUTPUT_FOLDER+'qlen_aggregato.png', dpi=150, bbox_inches='tight')
-    print("\nGrafico salvato in: qlen_aggregato.png")
-
-    # Mostra il grafico (opzionale, utile in ambiente interactivo)
+    fig.tight_layout()
+    plt.savefig(OUTPUT_FOLDER + 'qlen_aggregato.png', dpi=150, bbox_inches='tight')
     plt.show()
-
+    plt.close(fig)
 
 # Nuova funzione per graficare il throughput di tutti i flow (N curve)
 def grafica_throughput_per_flow(flows, start_t, end_t):
@@ -273,40 +275,33 @@ if __name__ == "__main__":
     if cartella.exists():
         shutil.rmtree(cartella)  # La ricrea vuota cartella.mkdir(parents=True)
     cartella.mkdir(parents=True)
-    # Nuova chiamata: grafico throughput per ogni flow (N curve)
-    start_t = 2000000000
-    end_t = 2001000000
-    grafica_throughput_per_flow(flows, start_t, end_t)
 
     aggregate_throughput = []
     aggregate_queue = []
-
-    last_indexes_f = {}
-    last_indexes_q = {}
-    for f in flows:
-        last_indexes_f[f] = 0
-    for q in queues:
-        last_indexes_q[q] = 0
-
     start_t = 2000000000
     end_t = 2000400000
-    for t in range(start_t, end_t, 7000):
+    for t in range(start_t, end_t, OUTPUT_INTERVAL):
         sum = 0
         for f in flows:
-            app_last_index_x = last_indexes_f[f]
-            for i in range(last_indexes_f[f], len(flows[f]["throughput"])):
-                if flows[f]["throughput"][i]["time"] <= t:
-                    last_elem_X = flows[f]["throughput"][i]
-                else:
-                    app_last_index_x = i
-                    break
-            if t > flows[f]["throughput"][-1]["time"]:
-                last_elem_X = {"time": t, "value": 0}
+            found = False
+            elem = 0
+            app_t = t
+            cont = 0
+            while app_t > (t-OUTPUT_INTERVAL):
+                if str(app_t) in flows[f]["throughput"]:
+                    found = True
+                    elem += flows[f]["throughput"][str(app_t)]
+                    cont +=1
+                app_t -= 1
 
-            last_indexes_f[f] = app_last_index_x
-            sum += last_elem_X["value"]
+            if cont == 0:
+                elem = 0
+            else:
+                elem = elem/cont
 
-        if (sum * 8 > 100):
+            sum += elem
+
+        if (sum*8 > 100):
             sum = 100/8
         aggregate_throughput.append({
             "time": (t - start_t) / 1000,
@@ -314,21 +309,27 @@ if __name__ == "__main__":
         })
 
 
-    for t in range(start_t, end_t, 7000):
+    for t in range(start_t, end_t, OUTPUT_INTERVAL):
         sum = 0
-        for q in queues:
-            app_last_index_x = last_indexes_q[q]
-            for i in range(last_indexes_q[q], len(queues[q]["lengths"])):
-                if queues[q]["lengths"][i]["time"] <= t:
-                    last_elem_Q = queues[q]["lengths"][i]
-                else:
-                    app_last_index_x = i
-                    break
+        for f in queues:
+            found = False
+            elem = 0
+            app_t = t
+            cont = 0
+            while not found and app_t > (t - OUTPUT_INTERVAL):
+                if str(app_t) in queues[f]["lengths"]:
+                    found = True
+                    elem += queues[f]["lengths"][str(app_t)]
+                    cont += 1
+                app_t -= 1
 
+            if cont == 0:
+                elem = 0
+            else:
+                elem = elem/cont
 
-            last_indexes_q[q] = app_last_index_x
+            sum += elem
 
-            sum = max(sum, last_elem_Q["value"])
 
         aggregate_queue.append({
             "time": (t - start_t) / 1000,
