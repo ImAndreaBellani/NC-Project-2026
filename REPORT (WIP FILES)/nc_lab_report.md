@@ -50,21 +50,27 @@ HPCC is at his core a window-based congestion Control algorithm that keeps monit
 ## HPCC main contributions
 
 # 2. Selected Result
-
-Mention which result of the paper you are reproducing, and explain its importance.
-
-For example:
-
-> “Figure 1 shows that method A improves throughput by 35% over method B under workload *W*. This experiment shows that paper can effectively overcome the motivated challenge.”
+## 2.1. Fairness and queue size with $W_{AI}$
 
 <center>
   <img
-    alt="The figure shows that method A improves throughput compared to method B"
-    src="figures/one_bar.png"
-    style="width:30%;"
+    alt="Considering an incast of 16 flows, Figure 14a shows the average throughput for different W_AI values, Figure 14b shows length's percentiles of the incast Queue"
+    src="figures/HPCC - Figure 14.jpg"
+    style="width:90%;"
     />
-  <p>Figure 1: The figure shows that method A improves throughput compared to method B</p>
+  <p>Considering an incast of 16 flows, Figure 14a shows the average throughput for different W_AI values, Figure 14b shows length's percentiles of the incast Queue</p>
 </center>
+
+## 2.2. Different ways of reacting to ACK.
+<center>
+  <img
+    alt="Considering an incast of 16 flows, Figure 14a shows the average throughput for different W_AI values, Figure 14b shows length's percentiles of the incast Queue"
+    src="figures/HPCC - Figure 13.jpg"
+    style="width:90%;"
+    />
+  <p>Considering an incast of 16 flows, Figure 13a and Figure 13b shows respectively the aggregated throughput and Queue Length running HPCC with different reacting policies</p>
+</center>
+
 
 # 3. Environment Setup
 
