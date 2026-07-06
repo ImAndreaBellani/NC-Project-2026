@@ -10,7 +10,7 @@ import argparse
 
 import plt
 
-FILE_NAME = "mix_incast_incastflow3_hp95ai300.tr"
+FILE_NAME = "mix_incast_incastflow3_hr95ai50-2.tr"
 INPUT_FOLDER_ROOT = "data\\input\\"+FILE_NAME+".txt"
 OUTPUT_FOLDER = "data\\output\\"+FILE_NAME+"\\"
 
