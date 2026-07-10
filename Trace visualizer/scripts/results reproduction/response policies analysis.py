@@ -14,7 +14,7 @@ FILE_NAME = "mix_incast_incastflow3_ha95ai50.tr"
 INPUT_FOLDER_ROOT = "data\\input\\"+FILE_NAME+".txt"
 OUTPUT_FOLDER = "data\\output\\"+FILE_NAME+"\\"
 
-OUTPUT_INTERVAL = 1500
+OUTPUT_INTERVAL = 10000
 class Trace:
     def __init__(self, linea):
         self.elementi = linea.split(" ")
@@ -63,50 +63,50 @@ def calcola_throughput_e_queues_lengths(nome_file):
     flows = {}
     queues = {}
     with open(nome_file, 'r', encoding='utf-8') as file:
+        last_time = 2000025000
+        data_received = 0
+        last_time_ever = 2004700000
+        last_time_seen = last_time
+        next_time = last_time + 10000
+        start = 0
         for linea in file:
             linea = linea.strip()
             if linea:
                 tr = Trace(linea)
+               # if tr.qlen > 0:
+                last_time_seen = tr.time#-3450000*(window_size == 300)
+
+                if tr.time > last_time_ever:
+                    continue
+
                 flow_id = identifica_flow_id(tr)
-                queue_id = identifica_queue_id(tr)
-                if tr.type == "ACK" and tr.event_kind == "Enqu":
-                    flow_id = reverse_identifica_flow_id(tr)
-                    if (tr.dip+":"+tr.dp) == flows[flow_id]["source"]:
-                        if flows[flow_id]["last acknowledged"] >= tr.seq:
-                            continue
-                        sum = 0
-
-                        keys_to_remove = []
-                        for data in flows[flow_id]["data received"].keys():
-                            if int(data) >= flows[flow_id]["last acknowledged"] and int(data) < tr.seq:
-                                sum += flows[flow_id]["data received"][data]
-                                keys_to_remove.append(data)
-
-                        for k in keys_to_remove:
-                            del flows[flow_id]["data received"][k]
-
-                        flows[flow_id]["last acknowledged"] = tr.seq
-                        value = sum / (tr.time - flows[flow_id]["last time acknowledged"])
-                        flows[flow_id]["throughput"][str(tr.time)] = value
-                        flows[flow_id]["last time acknowledged"] = tr.time
+                if tr.type == "DATA" and tr.event_kind == "Recv" and tr.node == flows[flow_id]["destination node"]:
+                    flows[flow_id]["data"] += tr.size
+                    data_received += tr.size
 
                 elif tr.type == "DATA":
                     if not flow_id in flows:
                         flows[flow_id] = {
                             "throughput": {},
-                            "data received": {},
-                            "last acknowledged": 0,
-                            "last time acknowledged": tr.time,
-                            "source": tr.sip+":"+tr.sp
+                            "destination node": 1,
+                            "data": 0
                         }
-                    flows[flow_id]["data received"][str(tr.seq)] = tr.size
+                        if len(flows.keys()) == 16:
+                            next_time = tr.time+10000
 
-                if not queue_id in queues:
-                    queues[queue_id] = {
-                        "lengths": {},
-                    }
 
-                queues[queue_id]["lengths"][str(tr.time)] = tr.qlen
+                if tr.time >= next_time and (tr.time != last_time) and len(flows.keys()) == 16:
+                    data_received = 0
+                    for f in flows.keys():
+                        flows[f]["throughput"][str(tr.time)] = flows[f]["data"]/(tr.time-last_time)
+                        flows[f]["data"] = 0
+
+                    last_time = tr.time
+                    next_time = tr.time+10000
+
+                if start == 0 and identifica_queue_id(tr)=="0:1:3" and tr.time>200000000:
+                    start = tr.time
+
 
 
     return flows, queues
@@ -125,8 +125,8 @@ import matplotlib.pyplot as plt
 mpl.rcParams.update({
     'figure.figsize': (7.0, 3.0),
     'figure.dpi': 150,
-    'font.family': 'serif',
-    'font.serif': ['Times New Roman', 'DejaVu Serif'],
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
     'font.size': 13,
     'axes.titlesize': 15,
     'axes.labelsize': 13,
@@ -160,6 +160,7 @@ def grafica_throughput_aggregato(aggregate_throughput):
     ax.set_xlabel('Time (us)')
     ax.set_ylabel('Throughput (Gbps)')
     ax.set_title('Throughput vs Time')
+    ax.set_ylim(0, 105)
 
     _stile_assi(ax)
     ax.legend(loc='center left', bbox_to_anchor=(0.53, 0.58), frameon=False)
@@ -278,7 +279,7 @@ if __name__ == "__main__":
 
     aggregate_throughput = []
     aggregate_queue = []
-    start_t = 2000000000
+    start_t = 2000025000
     end_t = 2000400000
     for t in range(start_t, end_t, OUTPUT_INTERVAL):
         sum = 0

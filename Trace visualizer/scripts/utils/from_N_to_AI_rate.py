@@ -2,7 +2,7 @@ import math
 
 B = 100 # in Gbps
 eta = 0.95
-RTT = 12.240
+RTT = 4 # in us
 if __name__ == "__main__":
     for N in range(1,200):
         ris = ((B*1000*(1-eta))/N)

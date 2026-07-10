@@ -15,39 +15,89 @@ Y. Li, R. Miao, H. H. Liu, Y. Zhuang, F. Feng, L. Tang, Z. Cao, M. Zhang, F. Kel
 [link to our repository](https://github.com/ImAndreaBellani/NC-Project-2026)
 
 ---
+<div class="pagebreak"></div>
 
 # 1. Introduction
 
-Introduce the paper by summarizing:
+HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks. In particular, it is a window-based Congestion Control algorithm designed for high-speed RDMA networks that leverages INT-MD (*In-band Network Telemetry - EMbed Data*) to get precise queue lenghts information.
 
-- The problem the paper addresses and its importance
-- The key ideas behind its solution and its approach
-- The main contributions
+In the paper, authors explain the motivation and theoretical foundations behind HPCC, its design and test its effectiveness with both testbed and NS-3 simulations, comparing it with state-of-art other Congestion Control algorithms for Datacenter Networks.
 
-HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks.
+## 1.3. HPCC main contributions
+The main contribution of the paper is the leverage of INT to improve the Congestion Control on large-scale and high-speed networks. The paper present a detailed description of the in-production Congestion Control mechanism running in the AliBaba Group datacenters, which can provide insights for the design of new cc mechanisms that leverage INT (which was not leveraged by other state-of-art CC mechanisms).
 
-## 1.1. The problem HPCC wants to address
+Moreover, the paper also shares AliBaba production experiences on the difficulties to operate on RDMA networks with the state-of-art CC mechanisms and clarifies the challenges of designing a Congestion Control algorithm for RDMA networks. 
 
-HPCC aims to improve congestion control in datacenters high-speed networks. By focusing on Congestion Control in RDMA networks, it tries both to address the well-known problems that motivate the usage of congestion control mechanisms in RDMA networks and to overcome limitations of state-of-art Congestion Control mechanism for RDMA networks (in particular, DCQCN and TIMELY):
-* well-known problems that require congestion control in RDMA networks:
-  - throughput maximization;
-  - latency minimization;
-  - high burst-tolerance;
-* main limitations of state-of-art Congestion Control mechanisms for RDMA networks:
-  - easy-to-deploy;
-  - slow convergence due to leveraging of heuristic approaches;
-  - difficult parameters tuning.
 
-## 1.2. Key ideas behind HPCC
-The essential feature that HPCC leverages to out-perform its competitors is INT (In-Network Telemetry):
+## 1.2. Challenges in achieving High Precision Congestion Control for RDMA applications
 
-In fact, using INT enables HPCC to obtain precise flows information which other state-of-art CC mechanisms usually aquire with a much slower convergence.
+### 1.2.1. RDMA networks in Datacencter
 
-HPCC is at his core a window-based congestion Control algorithm that keeps monitoring the number of inflight bytes.
+The demand of high-speed Datacenter networks is driven by two main trends, according to both state-of-art and authors experience:
+- new *resource disaggregation* and *heterogeneous computing* architectures require both low network latency levels and high network bandwidth;
+- new applications (eg. large-scale ML training on high computation speed devices) that periodically trasfer large volume data with super-fast storage and computation speeds, often making the network the real performance bottleneck.
 
-## 1.3 Brief explanation of HPCC
+To sustain these requirements, new approaches started to offload network stacks into hardware. Authors, in particular, started to deploy large-scale networks with *RDMA* (Remote Direct Memory Access) over *RoCEv2* (RDMA over Converged Ethernet Version 2).
 
-## HPCC main contributions
+### 1.2.2. Why designing a new Congestion Control algorithm
+
+HPCC tries to cope with the foundamental challenges authors have experienced with RoCEv2 and overcome limitations of other state-of-art Congestion Control mechanism.
+
+Authors highlight that in RDMA networks:
+- many flows starting at line rate causing severe congestions and deep packet queueing;
+- preventing PFC pauses, since they can cause huge traffic drops;
+- short flows experiencing really long latency due to deep packet queueing.
+
+To tame the problems mentioned above, an adequate Congestion Control mechanism is essential however, state-of-art CC algorithms (such as DCQCN and TIMELY) face important limitations, such as:
+- slow convergence of iterative methods that leverage coarse-grained feedback signals (eg. ECN);
+- techniques inherently based on mechanisms that wait queues build-ups (eg. ECN marking or detecting RTT increasing) to adjust sender rates;
+- complicated parameter tuning due to an high number of parameters or laking of simple rules of thumb to set them.
+
+Authors highlight how these limitation are a consequence of the heuristics implented to adjust sender rates accordingly to current network utilization. On the other side, HPCC overcomes these limitations leveraging INT, which enables senders to continuosly and precisely computing network utilization.
+
+## 1.3. How HPCC works
+The main keypoint of HPCC is the usage of INT-MD (*In-band Network Telemetry - EMbed Data*) to obtain precise link loads in particular, each switch in the path enqueues an INT header that contains various information which sender can use to proactively adjust its sending rate (eg. Queue Length). Instead of relying on heuristics or iterative approaches, senders receive a per-ACK updates to rapidly adjust the sending window, with a minimal set of algorithm's parameters.
+<center>
+  <img
+    alt="HPCC leveraging INT-MD"
+    src="figures/HPCC - Figure 4.jpg"
+    style="width:70%;"
+    />
+</center>
+
+More in detail, an HPCC sender adjusts its sending window if and only if a new ACK arrives. We can distinguish two different phases in the HPCC algoritm (names are invented by us to easily distinguish them):
+- *agnostic phase* : the sender keeps increasing its window regardless of network utilization $U$;
+- *adaptive phase* : the sender adapts its window adjusting it of a factor $\frac{\eta}{U}$, where $U$ is calculated using information from the INT headers collected over the flow path (note that if $U<<\eta$ the window increases, which is fine since the network is not congested).
+
+Senders normally start in the agnostic phase and pass to the adaptive one after a certain number of RTTs of if $U\geq\eta$.
+
+An important design choice of HPCC lies in when the sender reacts. In particular, the sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT (to be more precise, it is updated only when the ACK of the first packet sent from the last $W^C$ update is received). This technique is implemented to achive what authors call *fast reaction without over-reaction*. In other words, it is essential that the sender quickly reacts to changes, but adjusting its window completely at every ACK received is ... because ... (mettere la cosa che tutte le code sono diverse ogni RTT). So, the window adjustment is performed at per-ACK starting from a reference window ($W^C$) that is updated nearly every-RTT.
+
+Note that HPCC requires just $3$ parameters to be configured, which meaning is quite easy to understand:
+<center>
+  <table>
+    <tr>
+      <th>Parameter</th><th>Meaning</th><th>How to set it</th>
+    </tr>
+    <tr>
+      <th>$\eta$</th>
+      <th>Network utilization threshold that triggers the *adaptive phase*</th>
+      <th>Nearly to $0.95$, depening on how critical the </th>
+    </tr>
+    <tr>
+      <th>$W_{AI}$</th>
+      <th>Additive Increase window to ensure fairness</th>
+      <th>Rule of thumb: $W_{AI} = \frac{W_{init}\times(1-\eta)}{N}$, where $N$ is the (maximum) number of expected concurrent flows on a single link</th>
+    </tr>
+    <tr>
+      <th>$maxStage$</th>
+      <th>Number of maximum stage before passing to the adaptive phase</th>
+      <th>Generally low</th>
+    </tr>
+  </table>
+</center>
+
+<div class="pagebreak"></div>
 
 # 2. Selected Result
 ## 2.1. Fairness and queue size with $W_{AI}$
@@ -185,19 +235,13 @@ Evaluate the paper itself:
 - Was the artifact usable?
 - How difficult was reproduction?
 
+## 6.1 Paper evaluation
+
+## 6.2 Replication Package evaluation
+
 # 7. Conclusion
 
 Conclude the report by mentioning the takeaways of experiments you did
 
 
 ---
-
-# Appendix
-
-You are asked to write this report using Markdown. You can find a cheat sheet
-of Markdown syntax at this [link](https://rust-lang.github.io/mdBook/format/markdown.html).
-
-For generating a PDF file from your report you can use a tool of your choice.
-*md2pdf* is one such tool. See this [link](https://pypi.org/project/md2pdf/)
-for more information about it. You can also use an online editor such as [this](https://www.md2pdf.io/).
-

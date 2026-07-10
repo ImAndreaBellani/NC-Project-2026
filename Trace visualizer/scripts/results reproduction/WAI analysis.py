@@ -78,7 +78,8 @@ def calcola_throughput_e_queues_lengths(nome_file, window_size):
     with open(nome_file, 'r', encoding='utf-8') as file:
         last_time = 2000000000
         data_received = 0
-        last_time_ever = 2004700000
+        #last_time_ever = 2004700000
+        last_time_ever = 2050000000
         last_time_seen = last_time
         next_time = last_time + 10000
         start = 0
@@ -122,7 +123,7 @@ def calcola_throughput_e_queues_lengths(nome_file, window_size):
     next_times = {}
     step = 1000
 
-    end = last_time_seen
+    end = last_time_ever#last_time_seen
     with open(nome_file, 'r', encoding='utf-8') as file:
         for linea in file:
             linea = linea.strip()
@@ -214,6 +215,8 @@ def plot_stacked_throughputs(throughputs, output_folder):
 
     bar_width = 0.58
 
+    stack_heights = []
+
     for i, wai in enumerate(wai_values):
         bottom = 0.0
 
@@ -231,6 +234,33 @@ def plot_stacked_throughputs(throughputs, output_folder):
             )
             bottom += value
 
+        # altezza totale dello stack
+        stack_heights.append(bottom)
+
+    # linea che collega le altezze degli stack
+    ax.plot(
+        list(x),
+        stack_heights,
+        marker="o",
+        markersize=3,
+        linewidth=1,
+        color="black",
+        alpha=0.6,
+        zorder=5,
+    )
+
+    # valori sopra ogni punto
+    for i, height in enumerate(stack_heights):
+        ax.text(
+            i,
+            height + 2,
+            f"{height:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            alpha=0.55,
+        )
+
     ax.set_xticks(list(x))
     ax.set_xticklabels(wai_values)
 
@@ -245,7 +275,6 @@ def plot_stacked_throughputs(throughputs, output_folder):
     _stile_assi(ax)
 
     plt.tight_layout()
-    #plt.savefig(output_folder / "throughput_stacked.pdf")
     plt.savefig(output_folder / "throughput_stacked.png", dpi=300)
     plt.close(fig)
 
@@ -353,35 +382,61 @@ import matplotlib.pyplot as plt
 
 def plot_queue_distribution(all_qLens, queue_id, cartella):
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(4.6, 2.4))
 
-    ax.set_xlim(0,17.5)
     for i, wai in enumerate(sorted(all_qLens.keys(), key=int)):
-        values = np.array(all_qLens[wai][queue_id])
+        values = np.asarray(all_qLens[wai][queue_id])
 
         if len(values) == 0:
             continue
 
         x = np.sort(values)
-        print(f"AI {wai} percentili (50,95,99):", np.percentile(x, [50, 95, 99]))
+
+        print(f"AI {wai} percentili (50,95,99):",
+              np.percentile(x, [50, 95, 99]))
 
         # CDF empirica
-        y = np.arange(1, len(x) + 1) / len(x)
+        y = 100 * np.arange(1, len(x) + 1) / len(x)
 
-        color = colors[i % len(colors)]
+        ax.plot(
+            x,
+            y,
+            color=colors[i % len(colors)],
+            linewidth=1.6,
+            label=f"AI {wai}"
+        )
 
-        ax.plot(x, y, label=f"AI {wai}", color=color, linewidth=2)
+    # Assi
+    ax.set_xlabel("Queue Length (KBytes)")
+    ax.set_ylabel("CDF (%)")
 
-    ax.set_xlabel("Queue length (KB)")
-    ax.set_ylabel("CDF")
-    ax.set_title(f"Queue length CDF - {queue_id}")
-    ax.grid(True)
-    ax.legend()
+    ax.set_xlim(0,18)
+    ax.set_ylim(0, 100)
+
+    ax.set_yticks([0, 20, 40, 60, 80, 100])
+    ax.set_xticks([0, 2, 4, 6, 8, 10, 12, 14, 16, 18])
+
+    # stile tipo paper
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    ax.grid(False)
+
+    ax.legend(
+        loc="lower right",
+        frameon=False,
+        handlelength=2.5,
+        borderpad=0.2,
+        labelspacing=0.2
+    )
 
     safe = queue_id.replace(":", "_")
 
-    plt.savefig(f"{cartella}/queue_cdf_{safe}.png",
-                dpi=200, bbox_inches="tight")
+    plt.savefig(
+        f"{cartella}/queue_cdf_{safe}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
     plt.close()
 
 # Esempio di utilizzo

@@ -1,10 +1,8 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-from matplotlib.ticker import LogLocator, ScalarFormatter
-
-FILE_NAME = "FCT_cachefollow"
+import operator as op
+FILE_NAME = "FCT_alistorage_50%"
 REAL_FILE_NAME = FILE_NAME+".txt"
+INCAST = op.contains(FILE_NAME, "incast")
 
 colors = [
     "#A020F0",  # viola
@@ -63,10 +61,10 @@ CC_NAMES = [
 CC_STYLE = {
     "DCQCN+win": dict(color=colors[2], linestyle=":", linewidth=1.8),
     "DCQCN":      dict(color=colors[0], linestyle=":", linewidth=1.8),
-    "DCTCP":      dict(color=colors[1], linestyle="--", linewidth=1.8),
+    "DCTCP":      dict(color=colors[4], linestyle="--", linewidth=1.8),
     "HPCC":       dict(color=colors[5], linestyle="-", linewidth=2.0),
     "TIMELY+win": dict(color=colors[3], linestyle="--", linewidth=1.8),
-    "TIMELY":     dict(color=colors[4], linestyle="--", linewidth=1.8),
+    "TIMELY":     dict(color=colors[1], linestyle="--", linewidth=1.8),
 }
 
 def plot_fct_99pct():
@@ -80,7 +78,8 @@ def plot_fct_99pct():
 
     flow_size = data[:, 1]
 
-    fig, ax = plt.subplots()
+    # Figura un po' più larga
+    fig, ax = plt.subplots(figsize=(10, 4))
 
     for i, cc in enumerate(CC_NAMES):
         col = 2 + i * 3 + 2      # 99° percentile
@@ -91,27 +90,66 @@ def plot_fct_99pct():
             **CC_STYLE[cc]
         )
 
+    x_incast = 500 * 1024
+    # Linea verticale a 500K
+    if INCAST:
+        ax.axvline(
+            x=x_incast,
+            color="red",
+            linestyle=(5, (10, 3)),
+            linewidth=1.5,
+        )
+
+        ax.text(
+            x_incast * 1.02,
+            4,
+            " incast flows",
+            color="red",
+            fontsize=13,
+            ha="left",
+            va="bottom",
+        )
+
     ax.set_xscale("log")
     ax.set_yscale("log")
 
     ax.set_xlabel("Flow size (Byte)")
     ax.set_ylabel("FCT Slowdown")
 
-    xticks = [
-        1,
-        32,
-        64,
-        128,
-        256,
-        512,
-        1024,
-        4096,
-        16384,
-        65536,
-        262144,
-        1048576,
-        4194304,
-    ]
+    if INCAST:
+        xticks = [
+            1,
+            32,
+            64,
+            128,
+            256,
+            512,
+            1024,
+            4096,
+            16384,
+            65536,
+            262144,
+            x_incast,       # 500K
+            1048576,
+            4194304,
+        ]
+    else:
+        xticks = [
+            1,
+            32,
+            64,
+            128,
+            256,
+            512,
+            1024,
+            4096,
+            16384,
+            65536,
+            262144,
+            1048576,
+            4194304,
+        ]
+
     ax.set_xlim(flow_size.min(), xticks[-1])
 
     xticks = [x for x in xticks if x >= flow_size.min()]
@@ -128,7 +166,13 @@ def plot_fct_99pct():
             labels.append(str(int(x)))
 
     ax.set_xticks(xticks)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_xticks(xticks)
+    tick_labels = ax.set_xticklabels(labels, rotation=45, ha="right")
+
+    # Colora solo la label del punto di incast
+    for tick, x in zip(tick_labels, xticks):
+        if x == x_incast:
+            tick.set_color("red")
 
     ax.yaxis.set_major_locator(LogLocator(base=10))
     ax.yaxis.set_major_formatter(ScalarFormatter())
@@ -143,19 +187,34 @@ def plot_fct_99pct():
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    ax.legend(
-        loc="upper right",
-        bbox_to_anchor=(1.0, 1.16),
-        ncol=2,
+    # Legenda sopra il grafico
+    handles, labels = ax.get_legend_handles_labels()
+
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.99),
+        ncol=6,
         frameon=False,
         handlelength=2.5,
         columnspacing=0.8,
         handletextpad=0.4,
     )
 
-    plt.tight_layout()
+    # Il grafico occupa tutta la larghezza, lasciando solo spazio alla legenda
+    fig.subplots_adjust(
+        left=0.09,
+        right=0.99,
+        bottom=0.20,
+        top=0.82,
+    )
 
-    plt.savefig(OUTPUT_FOLDER / "99th_fct_slowdown.png", dpi=300)
+    plt.savefig(
+        OUTPUT_FOLDER / "99th_fct_slowdown.png",
+        dpi=300,
+    )
+
     plt.close(fig)
 
 if __name__ == "__main__":
