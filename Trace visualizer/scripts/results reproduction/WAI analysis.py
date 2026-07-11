@@ -10,11 +10,11 @@ import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 
-START_TIME = 2000000000
-END_TIME = 2000100000
+START_TIME          = 2000000000
+END_TIME_QUEUE      = 2090000000
+END_TIME_THROUGHPUT = 2010000000
 
 SAMPLING_INTERVAL = 1000
-OUTPUT_INTERVAL = 150000
 
 RTT = 4
 
@@ -126,7 +126,7 @@ def calcola_throughput_e_queues_lengths(nome_file):
             if linea:
                 tr = Trace(linea)
                 flow_id = identifica_flow_id(tr)
-                if tr.time > END_TIME:
+                if tr.time > END_TIME_THROUGHPUT:
                     break
                 if tr.type == "DATA" and tr.event_kind == "Recv" and tr.node == INCAST_DESTINATION:
                     last_time = START_TIME
@@ -149,13 +149,13 @@ def calcola_throughput_e_queues_lengths(nome_file):
                 tr = Trace(linea)
                 queue_id = identifica_queue_id(tr)
 
-                if tr.time > END_TIME:
+                if tr.time > END_TIME_QUEUE:
                     break
 
                 if not queue_id in queues:
                     queues[queue_id] = []
 
-                if tr.time >= next_sampling_time:
+                if tr.time >= next_sampling_time and queue_id == "0:1:3":
                     queues[queue_id].append({"ts": tr.time, "qLen": tr.qlen / 1000})
                     next_sampling_time += SAMPLING_INTERVAL
 
@@ -239,16 +239,24 @@ def plot_stacked_throughputs(throughputs, output_folder):
 
 def plot_throughput_evolution(flows, output_folder, label):
     """
-    Per ogni flow mostra l’evoluzione temporale del throughput.
+    Plot dell'evoluzione temporale del throughput dopo zero-order hold.
     """
+
     fig, ax = plt.subplots(figsize=(6.0, 3.0))
 
+
     for i, (flow_id, data) in enumerate(flows.items()):
-        if not data["throughput"]:
+
+        if len(data) == 0:
             continue
 
-        times = sorted(int(t) for t in data["throughput"].keys())
-        values = [data["throughput"][str(t)] * 8 for t in times]  # stesso scaling usato altrove
+        times = sorted(data.keys())
+
+        values = [
+            data[t] * 8
+            for t in times
+        ]
+
 
         ax.plot(
             times,
@@ -258,18 +266,24 @@ def plot_throughput_evolution(flows, output_folder, label):
             label=flow_id
         )
 
+
     ax.set_xlabel("Time")
     ax.set_ylabel("Throughput (Gbps)")
+
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
     _stile_assi(ax)
 
+
     plt.tight_layout()
 
-    #plt.savefig(output_folder / f"throughput_evolution_{label}.pdf")
-    plt.savefig(output_folder / f"throughput_evolution_{label}.png", dpi=300)
+    plt.savefig(
+        output_folder / f"throughput_evolution_{label}.png",
+        dpi=300
+    )
+
     plt.close(fig)
 
 def plot_queue_stats(queue_stats, output_folder):
@@ -325,17 +339,23 @@ def plot_queue_stats(queue_stats, output_folder):
 
     plt.close(fig)
 
+
 def plot_queue_distribution(all_qLens, queue_id, cartella):
 
     fig, ax = plt.subplots(figsize=(4.6, 2.4))
 
     for i, wai in enumerate(sorted(all_qLens.keys(), key=int)):
-        values = np.asarray(all_qLens[wai][queue_id])
+
+        values = all_qLens[wai][queue_id]
 
         if len(values) == 0:
             continue
 
-        x = np.sort(values)
+        # Estrai solo i valori di qLen dai dizionari
+        qlens = np.array([v["qLen"] for v in values])
+
+
+        x = np.sort(qlens)
 
         print(f"AI {wai} percentili (50,95,99):",
               np.percentile(x, [50, 95, 99]))
@@ -382,7 +402,115 @@ def plot_queue_distribution(all_qLens, queue_id, cartella):
         dpi=300,
         bbox_inches="tight"
     )
+
     plt.close()
+
+def apply_throughput_holder(flow_data, start_time=START_TIME, end_time=END_TIME_THROUGHPUT,
+                            sampling_interval=SAMPLING_INTERVAL):
+    """
+    Applica un zero-order hold ai throughput di un flow.
+
+    Input:
+        flow_data:
+            lista di dizionari:
+            [
+                {"ts": timestamp, "throughput": value},
+                ...
+            ]
+
+    Output:
+        dizionario:
+            {
+                timestamp: throughput_holder
+            }
+    """
+
+    if len(flow_data) == 0:
+        return {}
+
+    # Ordina per timestamp
+    samples = sorted(flow_data, key=lambda x: x["ts"])
+
+    holder = {}
+
+    idx = 0
+    current_value = 0
+
+    for t in range(start_time, end_time, sampling_interval):
+
+        # Aggiorna il valore quando raggiungo un nuovo campione
+        while idx < len(samples) and samples[idx]["ts"] <= t:
+            current_value = samples[idx]["throughput"]
+            idx += 1
+
+        holder[t] = current_value
+
+    return holder
+
+def plot_queue_evolution(all_qLens, queue_id, output_folder):
+    """
+    Plot dell'evoluzione temporale della queue length per una specifica coda.
+
+    all_qLens[wai][queue_id] =
+        [
+            {"ts": timestamp, "qLen": valore},
+            ...
+        ]
+
+    Una curva per ogni W_AI.
+    """
+
+    fig, ax = plt.subplots(figsize=(6.0, 3.0))
+
+    for i, wai in enumerate(sorted(all_qLens.keys(), key=int)):
+
+        if queue_id not in all_qLens[wai]:
+            continue
+
+        values = all_qLens[wai][queue_id]
+
+        if len(values) == 0:
+            continue
+
+        # Estrai timestamp e qLen
+        times = [v["ts"] for v in values]
+        qlens = [v["qLen"] for v in values]
+
+        ax.plot(
+            times,
+            qlens,
+            color=colors[i % len(colors)],
+            linewidth=1.5,
+            label=f"AI {wai}"
+        )
+
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Queue Length (KBytes)")
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    _stile_assi(ax)
+
+    ax.legend(
+        loc="upper right",
+        frameon=False,
+        handlelength=2.5,
+        borderpad=0.2,
+        labelspacing=0.2
+    )
+
+    safe = queue_id.replace(":", "_")
+
+    plt.tight_layout()
+
+    plt.savefig(
+        output_folder / f"queue_evolution_{safe}.png",
+        dpi=300
+    )
+
+    plt.close(fig)
+
 
 # Esempio di utilizzo
 if __name__ == "__main__":
@@ -410,51 +538,84 @@ if __name__ == "__main__":
 
     cartella.mkdir(parents=True)
 
-    '''
     throughputs = {}
+
     for k in all_flows:
+
         print("W_AI: " + str(k))
+
         throughputs[k] = []
-        total_sum = 0
+
         avg_values = []
 
-        for f in all_flows[k]:
-            partial_sum = 0.0
-            for t in all_flows[k][f]["throughput"].keys():
-                partial_sum  += all_flows[k][f]["throughput"][t]*8
+        # holder temporale per ogni flow
+        held_flows = {}
 
-            avg = partial_sum  / len(all_flows[k][f]["throughput"])
-            print("flow: " + str(f) + " average throughput: " + str(avg))
+        for f in all_flows[k]:
+
+            held = apply_throughput_holder(
+                all_flows[k][f]
+            )
+
+            held_flows[f] = held
+
+            if len(held) == 0:
+                continue
+
+            # media temporale corretta
+            avg = np.mean(list(held.values())) * 8
+
+            print(
+                "flow:",
+                f,
+                "average throughput:",
+                avg
+            )
+
             avg_values.append(avg)
 
-        total_sum = sum(avg_values)
+        throughputs[k] = avg_values
 
-        scale = 1.0
+        print(
+            "total sum:",
+            sum(avg_values)
+        )
 
-        throughputs[k] = [v * scale for v in avg_values]
-        total_sum *= scale
+        # plot usando dati holderizzati
+        plot_throughput_evolution(
+            held_flows,
+            cartella,
+            k
+        )
 
-        print("total sum: " + str(total_sum))
-        # 🔽 nuova chiamata
-        plot_throughput_evolution(all_flows[k], cartella, k)
+    plot_stacked_throughputs(
+        throughputs,
+        cartella
+    )
 
-    plot_stacked_throughputs(throughputs, cartella)
-    
-    '''
     queue_stats = {}
 
     QUEUE_ID = "0:1:3"  # oppure "3:1"
 
     for wai in sorted(all_qLens.keys(), key=int):
         values = all_qLens[wai][QUEUE_ID]
-        values = np.sort(values)
+
+        # Estrai solo i valori di qLen dai dizionari
+        qlens = np.array([entry["qLen"] for entry in values])
+
+        # Ordina i valori
+        qlens = np.sort(qlens)
 
         queue_stats[wai] = (
-            np.percentile(values, 50, method="linear"),
-            np.percentile(values, 95,  method="linear"),
-            np.percentile(values, 99,  method="linear"),
+            np.percentile(qlens, 50, method="linear"),
+            np.percentile(qlens, 95, method="linear"),
+            np.percentile(qlens, 99, method="linear"),
         )
-        print(queue_stats[wai])
 
     plot_queue_stats(queue_stats, cartella)
     plot_queue_distribution(all_qLens, QUEUE_ID, cartella)
+    plot_queue_evolution(
+        all_qLens,
+        "0:1:3",
+        cartella
+    )

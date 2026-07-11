@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 START_TIME = 2000000000
 END_TIME = 2020000000
 
-FOLDER_NAME = "hadoop_L30_T0.02_I2"
-OUTPUT_FOLDER_NAME = "PFC_hadoop_30%_incast"
+FOLDER_NAME = "alistorage_L50_T0.02_I2"
+OUTPUT_FOLDER_NAME = "PFC_alistorage_50%_incast"
 
 colors = [
     "#A020F0",  # viola
@@ -880,10 +880,10 @@ def plot_total_pause_time():
     fig, ax = plt.subplots(figsize=(5.5, 3.6))
 
 
-    total_time = ((END_TIME-START_TIME)*(480))/(1000 * 1000)
+    total_time = 1 #((END_TIME-START_TIME)*(480))/(1000 * 1000)
     bars = ax.bar(
         x,
-        [100*(values[c]/total_time) for c in labels],
+        [(values[c]/total_time) for c in labels],
         width=0.55,
         color=colors[0]
     )
@@ -1049,7 +1049,7 @@ def plot_pause_duration_cdf():
     ax.set_xlabel("Single PFC pause duration (µs)")
     ax.set_ylabel("CDF")
 
-    ax.set_xlim(left=0, right=500)
+    ax.set_xlim(left=0, right=200)
     ax.set_ylim(0, 1)
 
     ax.set_yticks(np.linspace(0, 1, 6))
@@ -1224,9 +1224,143 @@ def plot_pause_duration_statistics():
 
     plt.close(fig)
 
+def plot_pfc_pause_events_and_total_time():
+
+    files = list(INPUT_FOLDER.glob("*.txt"))
+
+    pause_counts = {}
+    total_pause_times = {}
+
+    for cc, substring in CC_NAMES.items():
+
+        matching_files = [
+            f for f in files
+            if substring in f.name
+        ]
+
+        if len(matching_files) == 0:
+
+            pause_counts[cc] = 0
+            total_pause_times[cc] = 0
+            continue
+
+        pauses, _ = compute_pfc_statistics(
+            matching_files[0]
+        )
+
+        pause_counts[cc] = pauses
+
+        total_pause_times[cc] = (
+            compute_total_pause_time(
+                matching_files[0],
+                switches_only=True
+            ) / 1_000_000.0      # ns -> ms
+        )
+
+
+    labels = list(CC_NAMES.keys())
+
+    x = np.arange(len(labels))
+
+    width = 0.35
+
+    fig, ax1 = plt.subplots(
+        figsize=(7.2, 3.8)
+    )
+
+    ax2 = ax1.twinx()
+
+
+    bars1 = ax1.bar(
+        x - width/2,
+        [pause_counts[c]/1000 for c in labels],
+        width,
+        color=colors[0],
+        label="1K PFC pause events"
+    )
+
+    bars2 = ax2.bar(
+        x + width/2,
+        [total_pause_times[c] for c in labels],
+        width,
+        color=colors[1],
+        label="Total pause time"
+    )
+
+
+    for bar in bars1:
+
+        h = bar.get_height()
+
+        ax1.text(
+            bar.get_x() + bar.get_width()/2,
+            h,
+            f"{int(h)}",
+            ha="center",
+            va="bottom",
+            fontsize=8
+        )
+
+
+    for bar in bars2:
+
+        h = bar.get_height()
+
+        ax2.text(
+            bar.get_x() + bar.get_width()/2,
+            h,
+            f"{h:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=8
+        )
+
+
+    ax1.set_xticks(x)
+
+    ax1.set_xticklabels(
+        labels,
+        rotation=35,
+        ha="right"
+    )
+
+    ax1.set_ylabel(
+        "1K Number of PFC pause events"
+    )
+
+    ax2.set_ylabel(
+        "Total PFC pause time (ms)"
+    )
+
+    ax1.spines["top"].set_visible(False)
+    ax2.spines["top"].set_visible(False)
+
+    _stile_assi(ax1)
+    _stile_assi(ax2)
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+
+    ax1.legend(
+        lines1 + lines2,
+        labels1 + labels2,
+        loc="upper left"
+    )
+
+    plt.tight_layout()
+
+    plt.savefig(
+        OUTPUT_FOLDER /
+        "pfc_pause_events_and_total_time.png",
+        dpi=300
+    )
+
+    plt.close(fig)
+
 if __name__ == "__main__":
     plot_pfc_pause_distribution()
     plot_pfc_statistics()
     plot_total_pause_time()
     plot_pause_duration_cdf()
     plot_pause_duration_statistics()
+    plot_pfc_pause_events_and_total_time()

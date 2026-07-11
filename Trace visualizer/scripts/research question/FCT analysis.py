@@ -1,6 +1,6 @@
 import matplotlib as mpl
 import operator as op
-FILE_NAME = "FCT_alistorage_30%_incast"
+FILE_NAME = "FCT_cachefollow_50%_incast"
 REAL_FILE_NAME = FILE_NAME+".txt"
 INCAST = op.contains(FILE_NAME, "incast")
 

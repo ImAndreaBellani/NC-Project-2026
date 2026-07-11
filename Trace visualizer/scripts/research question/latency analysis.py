@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 START_TIME = 2000000000
 END_TIME = 2020000000
 
-FOLDER_NAME = "traces_hadoop_L30_T0.02_I2"
-OUTPUT_FOLDER_NAME = "LATENCY_hadoop_30%_incast"
+FOLDER_NAME = "traces_alistorage_L50_T0.02_I2"
+OUTPUT_FOLDER_NAME = "LATENCY_alistorage_50%_incast"
 
 colors = [
     "#A020F0",  # viola
