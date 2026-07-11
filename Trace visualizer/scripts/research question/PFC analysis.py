@@ -880,10 +880,10 @@ def plot_total_pause_time():
     fig, ax = plt.subplots(figsize=(5.5, 3.6))
 
 
-    total_time = 1#((END_TIME-START_TIME))/(1000 * 1000)
+    total_time = ((END_TIME-START_TIME)*(480))/(1000 * 1000)
     bars = ax.bar(
         x,
-        [values[c]/total_time for c in labels],
+        [100*(values[c]/total_time) for c in labels],
         width=0.55,
         color=colors[0]
     )

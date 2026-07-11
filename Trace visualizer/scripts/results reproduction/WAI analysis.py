@@ -11,10 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 START_TIME = 2000000000
+END_TIME = 2000100000
 
+SAMPLING_INTERVAL = 1000
 OUTPUT_INTERVAL = 150000
 
 RTT = 4
+
+INCAST_DESTINATION = 1
 
 def from_rate_to_window(rate):
     return int((rate*RTT)/8)
@@ -116,89 +120,46 @@ def calcola_throughput_e_queues_lengths(nome_file):
     flows = {}
     queues = {}
 
-
     with open(nome_file, 'r', encoding='utf-8') as file:
-        last_time = 2000000000
-        data_received = 0
-        #last_time_ever = 2004700000
-        last_time_ever = 2050000000
-        last_time_seen = last_time
-        next_time = last_time + 10000
-        start = 0
         for linea in file:
             linea = linea.strip()
             if linea:
                 tr = Trace(linea)
-               # if tr.qlen > 0:
-                last_time_seen = tr.time#-3450000*(window_size == 300)
-
-                if tr.time > last_time_ever:
-                    continue
-
                 flow_id = identifica_flow_id(tr)
-                if tr.type == "DATA" and tr.event_kind == "Recv" and tr.node == flows[flow_id]["destination node"]:
-                    flows[flow_id]["data"] += tr.size
-                    data_received += tr.size
-
-                elif tr.type == "DATA":
-                    if not flow_id in flows:
-                        flows[flow_id] = {
-                            "throughput": {},
-                            "destination node": 1,
-                            "data": 0
+                if tr.time > END_TIME:
+                    break
+                if tr.type == "DATA" and tr.event_kind == "Recv" and tr.node == INCAST_DESTINATION:
+                    last_time = START_TIME
+                    if len(flows[flow_id]) > 0:
+                        last_time = flows[flow_id][-1]["ts"]
+                    flows[flow_id].append(
+                        {
+                            "ts": tr.time,
+                            "throughput": tr.size/(tr.time - last_time)
                         }
-                        if len(flows.keys()) == 16:
-                            next_time = tr.time+10000
+                    )
+                elif tr.type == "DATA" and not flow_id in flows:
+                    flows[flow_id] = []
 
-                if tr.time >= next_time and (tr.time != last_time) and len(flows.keys()) == 16:
-                    data_received = 0
-                    for f in flows.keys():
-                        flows[f]["throughput"][str(tr.time)] = flows[f]["data"]/(tr.time-last_time)
-                        flows[f]["data"] = 0
-
-                    last_time = tr.time
-                    next_time = tr.time+10000
-
-                if start == 0 and identifica_queue_id(tr)=="0:1:3" and tr.time>2000050000:
-                    start = tr.time
-
-    next_times = {}
-    step = 1000
-
-    end = last_time_ever#last_time_seen
+    next_sampling_time = START_TIME
     with open(nome_file, 'r', encoding='utf-8') as file:
         for linea in file:
             linea = linea.strip()
             if linea:
                 tr = Trace(linea)
-                if tr.time < start:
-                    continue
-
                 queue_id = identifica_queue_id(tr)
+
+                if tr.time > END_TIME:
+                    break
 
                 if not queue_id in queues:
                     queues[queue_id] = []
 
-                queues[queue_id].append({"time": tr.time, "value": tr.qlen / 1000})
+                if tr.time >= next_sampling_time:
+                    queues[queue_id].append({"ts": tr.time, "qLen": tr.qlen / 1000})
+                    next_sampling_time += SAMPLING_INTERVAL
 
-
-    new_queues = {k: [] for k in queues}
-
-    for q in queues:
-        events = queues[q]
-
-        i = 0
-        last_value = 0
-
-        for t in range(start, end, step):
-            # aggiorna fino al tempo t
-            while i < len(events) and events[i]["time"] <= t:
-                last_value = events[i]["value"]
-                i += 1
-
-            new_queues[q].append(last_value)
-
-    return flows, new_queues
+    return flows, queues
 
 def plot_stacked_throughputs(throughputs, output_folder):
     """
@@ -428,8 +389,8 @@ if __name__ == "__main__":
     all_flows = {}
     all_qLens = {}
     for i in range(1, 1000):
-        FILE_NAME = "mix_incast_incastflow3_hp95ai"+str(i)+".tr"
-        INPUT_FOLDER_ROOT = "data\\input\\" + FILE_NAME + ".txt"
+        FILE_NAME = "mix_incast_incastflow3_hp95ai"+str(i)+".tr.txt"
+        INPUT_FOLDER_ROOT = Path(Path("..") / ".." / "data" / "input" / FILE_NAME).resolve()
         window_size = from_rate_to_window(i)
 
         if os.path.exists(INPUT_FOLDER_ROOT):
@@ -441,7 +402,7 @@ if __name__ == "__main__":
             all_qLens[str(window_size)] = queues
 
 
-    OUTPUT_FOLDER = "data\\output\\W_AI analysis\\"
+    OUTPUT_FOLDER = Path(Path("..") / ".." / "data" / "output" / "W_AI analysis").resolve()
 
     cartella = Path(OUTPUT_FOLDER)
     if cartella.exists():
@@ -449,6 +410,7 @@ if __name__ == "__main__":
 
     cartella.mkdir(parents=True)
 
+    '''
     throughputs = {}
     for k in all_flows:
         print("W_AI: " + str(k))
@@ -467,9 +429,6 @@ if __name__ == "__main__":
 
         total_sum = sum(avg_values)
 
-       # if total_sum > 100:
-        #    scale = 100.0 / total_sum
-        #else:
         scale = 1.0
 
         throughputs[k] = [v * scale for v in avg_values]
@@ -480,8 +439,8 @@ if __name__ == "__main__":
         plot_throughput_evolution(all_flows[k], cartella, k)
 
     plot_stacked_throughputs(throughputs, cartella)
-
-
+    
+    '''
     queue_stats = {}
 
     QUEUE_ID = "0:1:3"  # oppure "3:1"
@@ -495,6 +454,7 @@ if __name__ == "__main__":
             np.percentile(values, 95,  method="linear"),
             np.percentile(values, 99,  method="linear"),
         )
+        print(queue_stats[wai])
 
     plot_queue_stats(queue_stats, cartella)
     plot_queue_distribution(all_qLens, QUEUE_ID, cartella)
