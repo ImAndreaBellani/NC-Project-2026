@@ -56,22 +56,25 @@ To tame the problems mentioned above, an adequate Congestion Control mechanism i
 Authors highlight how these limitation are a consequence of the heuristics implented to adjust sender rates accordingly to current network utilization. On the other side, HPCC overcomes these limitations leveraging INT, which enables senders to continuosly and precisely computing network utilization.
 
 ## 1.3. How HPCC works
-The main keypoint of HPCC is the usage of INT-MD (*In-band Network Telemetry - EMbed Data*) to obtain precise link loads in particular, each switch in the path enqueues an INT header that contains various information which sender can use to proactively adjust its sending rate (eg. Queue Length). Instead of relying on heuristics or iterative approaches, senders receive a per-ACK updates to rapidly adjust the sending window, with a minimal set of algorithm's parameters.
+
 <center>
   <img
     alt="HPCC leveraging INT-MD"
     src="figures/HPCC - Figure 4.jpg"
     style="width:70%;"
-    />
+  />
+  <p><b>Figure 1: The overview of HPCC framework</b></p>
 </center>
 
-More in detail, an HPCC sender adjusts its sending window if and only if a new ACK arrives. We can distinguish two different phases in the HPCC algoritm (names are invented by us to easily distinguish them):
-- *agnostic phase* : the sender keeps increasing its window regardless of network utilization $U$;
-- *adaptive phase* : the sender adapts its window adjusting it of a factor $\frac{\eta}{U}$, where $U$ is calculated using information from the INT headers collected over the flow path (note that if $U<<\eta$ the window increases, which is fine since the network is not congested).
+The main keypoint of HPCC is the usage of INT-MD (*In-band Network Telemetry - EMbed Data*) to obtain precise link loads in particular, each switch in the path enqueues an INT header that contains various information which sender can use to proactively adjust its sending rate (eg. Queue Length). Instead of relying on heuristics or iterative approaches, senders receive a per-ACK updates to rapidly adjust the sending window, with a minimal set of algorithm's parameters.
 
-Senders normally start in the agnostic phase and pass to the adaptive one after a certain number of RTTs of if $U\geq\eta$.
+When a new ACK arrives, the sender computes the current network utilization $U$ using information retrived from the INT headers collected over the flow path and updates its window. In particular, we can distinguish two different phases in the HPCC algorithm (names are invented by us to easily distinguish them):
+- *agnostic phase* : the sender updates its window regardless of network utilization $U$ (tough it stills keeps calculating $U$);
+- *adaptive phase* : the sender adapts its window adjusting it of a factor $\frac{\eta}{U}$ (note that if $U<<\eta$ the window increases, which is fine since the network is not congested).
 
-An important design choice of HPCC lies in when the sender reacts. In particular, the sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT (to be more precise, it is updated only when the ACK of the first packet sent from the last $W^C$ update is received). This technique is implemented to achive what authors call *fast reaction without over-reaction*. In other words, it is essential that the sender quickly reacts to changes, but adjusting its window completely at every ACK received is ... because ... (mettere la cosa che tutte le code sono diverse ogni RTT). So, the window adjustment is performed at per-ACK starting from a reference window ($W^C$) that is updated nearly every-RTT.
+Senders normally start in the agnostic phase and pass to the adaptive one after a certain number of RTTs or if $U\geq\eta$.
+
+Instead of directly updating sending window starting from the previous value, sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT (to be more precise, it is updated only when the ACK of the first packet sent from the last $W^C$ update is received). This technique is implemented to ensure what authors call *fast reaction without over-reaction*. In other words, it is essential that the sender quickly reacts to changes (so, every-ACK received), but adjusting its window completely at every ACK received is ... because ... (mettere la cosa che tutte le code sono diverse ogni RTT). So, the window adjustment is performed at per-ACK starting from a reference window ($W^C$) that is updated nearly every-RTT.
 
 Note that HPCC requires just $3$ parameters to be configured, which meaning is quite easy to understand:
 <center>
@@ -81,21 +84,23 @@ Note that HPCC requires just $3$ parameters to be configured, which meaning is q
     </tr>
     <tr>
       <th>$\eta$</th>
-      <th>Network utilization threshold that triggers the *adaptive phase*</th>
-      <th>Nearly to $0.95$, depening on how critical the </th>
+      <td>Network utilization threshold that triggers the adaptive phase</td>
+      <td>Nearly to $0.95$, depening on how critical the </td>
     </tr>
     <tr>
       <th>$W_{AI}$</th>
-      <th>Additive Increase window to ensure fairness</th>
-      <th>Rule of thumb: $W_{AI} = \frac{W_{init}\times(1-\eta)}{N}$, where $N$ is the (maximum) number of expected concurrent flows on a single link</th>
+      <td>Additive Increase window to ensure fairness</td>
+      <td>Rule of thumb: $W_{AI} = \frac{W_{init}\times(1-\eta)}{N}$, where $N$ is the (maximum) number of expected concurrent flows on a single link</td>
     </tr>
     <tr>
       <th>$maxStage$</th>
-      <th>Number of maximum stage before passing to the adaptive phase</th>
-      <th>Generally low</th>
+      <td>Number of maximum stage before passing to the adaptive phase</td>
+      <td>Generally low</td>
     </tr>
   </table>
 </center>
+
+
 
 <div class="pagebreak"></div>
 
@@ -108,7 +113,7 @@ Note that HPCC requires just $3$ parameters to be configured, which meaning is q
     src="figures/HPCC - Figure 14.jpg"
     style="width:90%;"
     />
-  <p>Considering an incast of 16 flows, Figure 14a shows the average throughput for different W_AI values, Figure 14b shows length's percentiles of the incast Queue</p>
+  <p><b>Figure 2: Fairness and queue size with $W_{AI}$</b></p>
 </center>
 
 ## 2.2. Different ways of reacting to ACK.

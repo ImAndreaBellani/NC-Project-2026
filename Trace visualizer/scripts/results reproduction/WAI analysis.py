@@ -4,15 +4,20 @@ Analizza trace ns-3 per calcolare throughput e latenza per flow
 Trace format: tempo n:node intf:qidx qidx qlen ecn:sip dip sport dport prot seq ts pg size(payload)
 """
 import os
-import random
 import shutil
 from pathlib import Path
-from collections import defaultdict
-import argparse
+import matplotlib as mpl
+import numpy as np
+import matplotlib.pyplot as plt
 
-import plt
+START_TIME = 2000000000
 
-OUTPUT_INTERVAL = 1500
+OUTPUT_INTERVAL = 150000
+
+RTT = 4
+
+def from_rate_to_window(rate):
+    return int((rate*RTT)/8)
 
 colors = [
     "#A020F0",  # viola
@@ -24,6 +29,34 @@ colors = [
     "#E41A1C",  # rosso
     "#000000",  # nero
 ]
+
+mpl.rcParams.update({
+    'figure.figsize': (7.0, 3.0),
+    'figure.dpi': 150,
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
+    'font.size': 13,
+    'axes.titlesize': 15,
+    'axes.labelsize': 13,
+    'axes.linewidth': 1.2,
+    'xtick.labelsize': 11,
+    'ytick.labelsize': 11,
+    'xtick.direction': 'in',
+    'ytick.direction': 'in',
+    'xtick.major.size': 4,
+    'ytick.major.size': 4,
+    'xtick.major.width': 1.0,
+    'ytick.major.width': 1.0,
+    'legend.fontsize': 11,
+    'legend.frameon': False,
+    'lines.linewidth': 1.8,
+    'savefig.bbox': 'tight',
+})
+
+def _stile_assi(ax):
+    ax.tick_params(axis='both', which='major', labelsize=11, width=1.0, length=4, direction='in')
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.2)
 
 class Trace:
     def __init__(self, linea):
@@ -67,8 +100,17 @@ class Trace:
 def identifica_queue_id(trace):
     return f"{trace.node}:{trace.intf}:{trace.qidx}"
 
+def identifica_flow_id(trace):
+    return f"{trace.sip}:{trace.sp}->{trace.dip}:{trace.dp}"
 
-def calcola_throughput_e_queues_lengths(nome_file, window_size):
+
+def reverse_identifica_flow_id(trace):
+    return f"{trace.dip}:{trace.dp}->{trace.sip}:{trace.sp}"
+
+
+
+
+def calcola_throughput_e_queues_lengths(nome_file):
     """Legge il file e crea un oggetto Trace per ogni riga"""
 
     flows = {}
@@ -157,50 +199,6 @@ def calcola_throughput_e_queues_lengths(nome_file, window_size):
             new_queues[q].append(last_value)
 
     return flows, new_queues
-
-
-def identifica_flow_id(trace):
-    return f"{trace.sip}:{trace.sp}->{trace.dip}:{trace.dp}"
-
-
-def reverse_identifica_flow_id(trace):
-    return f"{trace.dip}:{trace.dp}->{trace.sip}:{trace.sp}"
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-mpl.rcParams.update({
-    'figure.figsize': (7.0, 3.0),
-    'figure.dpi': 150,
-    'font.family': 'sans-serif',
-    'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
-    'font.size': 13,
-    'axes.titlesize': 15,
-    'axes.labelsize': 13,
-    'axes.linewidth': 1.2,
-    'xtick.labelsize': 11,
-    'ytick.labelsize': 11,
-    'xtick.direction': 'in',
-    'ytick.direction': 'in',
-    'xtick.major.size': 4,
-    'ytick.major.size': 4,
-    'xtick.major.width': 1.0,
-    'ytick.major.width': 1.0,
-    'legend.fontsize': 11,
-    'legend.frameon': False,
-    'lines.linewidth': 1.8,
-    'savefig.bbox': 'tight',
-})
-
-def _stile_assi(ax):
-    ax.tick_params(axis='both', which='major', labelsize=11, width=1.0, length=4, direction='in')
-    for spine in ax.spines.values():
-        spine.set_linewidth(1.2)
-
-RTT = 4
-
-def from_rate_to_window(rate):
-    return int((rate*RTT)/8)
 
 def plot_stacked_throughputs(throughputs, output_folder):
     """
@@ -313,17 +311,6 @@ def plot_throughput_evolution(flows, output_folder, label):
     plt.savefig(output_folder / f"throughput_evolution_{label}.png", dpi=300)
     plt.close(fig)
 
-def calcola_statistiche_queue(samples):
-    if len(samples) == 0:
-        return 0, 0, 0
-
-    arr = np.array(samples)
-    return (
-        np.median(arr),
-        np.percentile(arr, 95),
-        np.percentile(arr, 99),
-    )
-
 def plot_queue_stats(queue_stats, output_folder):
     """
     queue_stats[wai] = (median, 95th, 99th)
@@ -376,9 +363,6 @@ def plot_queue_stats(queue_stats, output_folder):
     plt.savefig(output_folder / "queue_length_stats.png", dpi=300)
 
     plt.close(fig)
-
-import numpy as np
-import matplotlib.pyplot as plt
 
 def plot_queue_distribution(all_qLens, queue_id, cartella):
 
@@ -452,7 +436,7 @@ if __name__ == "__main__":
             input_path = (Path(__file__).parent.resolve() / Path(INPUT_FOLDER_ROOT)).resolve()
             print(f"Leggendo trace da: {input_path}")
 
-            flows, queues = calcola_throughput_e_queues_lengths(input_path, window_size)
+            flows, queues = calcola_throughput_e_queues_lengths(input_path)
             all_flows[str(window_size)] = flows
             all_qLens[str(window_size)] = queues
 
@@ -514,5 +498,3 @@ if __name__ == "__main__":
 
     plot_queue_stats(queue_stats, cartella)
     plot_queue_distribution(all_qLens, QUEUE_ID, cartella)
-
-

@@ -1,6 +1,6 @@
 import matplotlib as mpl
 import operator as op
-FILE_NAME = "FCT_alistorage_50%"
+FILE_NAME = "FCT_alistorage_30%_incast"
 REAL_FILE_NAME = FILE_NAME+".txt"
 INCAST = op.contains(FILE_NAME, "incast")
 
@@ -82,7 +82,8 @@ def plot_fct_99pct():
     fig, ax = plt.subplots(figsize=(10, 4))
 
     for i, cc in enumerate(CC_NAMES):
-        col = 2 + i * 3 + 2      # 99° percentile
+        col = 2 + i *3 + 1     # 99° percentile
+        print("cc: "+ str(cc) + " sta guardando nella colonna: " + str(col))
         ax.plot(
             flow_size,
             data[:, col],
@@ -177,7 +178,7 @@ def plot_fct_99pct():
     ax.yaxis.set_major_locator(LogLocator(base=10))
     ax.yaxis.set_major_formatter(ScalarFormatter())
 
-    ymin = 10 ** np.floor(np.log10(data[:, 4::3].min()))
+    ymin = 1#10 ** np.floor(np.log10(data[:, 4::3].min()))
     ymax = 10 ** np.ceil(np.log10(data[:, 4::3].max()))
 
     ax.set_ylim(ymin, ymax)
@@ -211,7 +212,7 @@ def plot_fct_99pct():
     )
 
     plt.savefig(
-        OUTPUT_FOLDER / "99th_fct_slowdown.png",
+        OUTPUT_FOLDER / "95th_fct_slowdown.png",
         dpi=300,
     )
 
