@@ -276,61 +276,43 @@ The fct analysis result corresponded quite well to the results shown by the pape
 
 With the PFC pauses instead we have had to determine what the authors actually meant by fraction of PFC time, as no clearly definition was given. So, in order to obtain still relevant result for the paper question (i.e. measuring the PFC impact running each CC algorithm) we plotted both the number of PFC pauses verified during the simulation and the total amount of time interfaces passed in pause (i.e. the sum over all interfaces of the total amount of time each has been in pause). NS-3 artifact implementation already provides the report of PFC pauses and resumes events by interfaces, so counting them and evaluating their duration was pretty trivial.
 
-
-
-
-
-
-
-
-> Explain how your experiment was conducted and then what results you acquired. 
-Afterwards, compare your results with those of the paper and state your
-takeaways.
-
-Step-by-step description:
-
-1. Execution procedure
-1. Measurement method
-1. Number of runs
-1. Statistical treatment (mean, median, CI, etc.)
-
-Also Describe:
-
-- How did you ensure correctness (did you check also other metrics to make sure the experiment is running correctly?)
-- Did you do any debugging? Discuss issues you faced and how you overcame them (if applicable consider allocating a subsection for this item) 
-
-Share your result and compare them with the paper's. Then discuss your takeaways.
-
-For comparison include:
-
-- Graph(s) or table(s)
-- Matching axes and units with the source paper
-- Error bars if applicable
-- You may want to report difference with the original results (e.g., absolute
-number or percentage).
-
-For example:
-
 <center>
-  <div style="display:inline-block; width:30%;">
+  <div style="display:inline-block; width:32%;">
     <img
-      alt="The figure shows that method A improves throughput compared to method B"
-      src="figures/one_bar.png"
+      src="figures/fct_fbdhp_L30I2.png"
       style="width:100%"
       />
-    <p>Figure 2: The figure shows that method A improves throughput compared to method B</p>
   </div>
-  <div style="display:inline-block; width:30%; padding-left: 1em">
+  <div style="display:inline-block; width:32%;">
     <img
-      alt="Our reproduction of Figure 1 shows results with the similar trend as claimed by the paper"
-      src="figures/two_bar.png"
+      src="figures/LATENCY_fbhdp_30_incast/packet_latency_95pct.png"
       style="width:100%"
       />
-    <p>Figure 3: Our reproduction of Figure 1 shows results with the similar trend as claimed by the paper</p>
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_fbhdp_L30I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
   </div>
 </center>
 
-> **Reminder:** the goal is not achieve the exact results of the paper, but to do a rigorous experiment with similar assumptions from the source paper and gain insight. The insight can be correctness of work, failure to reproduce same results, or even infeasibility of doing such experiment for interesting reasons.
+<center>
+  <div style="display:inline-block; width:49%;">
+    <img
+      src="figures/fct_fbdhp_L50.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:49%;">
+    <img
+      src="figures/LATENCY_fbhdp_50/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
+[METTERE DIFF. RISULTATI]
 
 # 5. Further Exploration
 
@@ -353,17 +335,213 @@ Include:
 - How the experiment was conducted (share the details)
 - What did you discover?
 
+[mettere distribution comparison .jpg]
+
+### 5.1.1. CC algorithms comparison with AliStorage distribution
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/alist_L30_I2_fct comp/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_alist_30_incast/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_alist_L30I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/alist_L50_T002_fct_comp/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_alist_50/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_alist_L50/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/alist_L50_T0002_I2_FCT_comparison/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_alist_50_incast/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_alist_L50I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
+### 5.1.2. CC algorithms comparison with CacheFollower distribution
+
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/cache_L30_T0.02_I2 fct comparisons/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_cache_30_incast/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_cache_L30I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/cache_L50_T0.02fct comparisons/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_cache_50/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_cache_L50/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/cache_L50_T002_I2FCT comp/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_cache_50_incast/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_cache_L50I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
+### 5.1.3. CC algorithms comparison with GoogleRPC distribution
+
+
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/googl_L30_T0.02_I2_fct_comp/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_googl_30_incast/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_googl_L30I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/googl_L50_T0.02_fct_comp/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_googl_50/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_googl_L50/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+<center>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/fct_googl_L50_t0.002_I2_fct_incast_comp/95th_fct_slowdown.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/LATENCY_googl_50_incast/packet_latency_95pct.png"
+      style="width:100%"
+      />
+  </div>
+  <div style="display:inline-block; width:32%;">
+    <img
+      src="figures/PFC_googl_L50I2/pfc_pause_events_and_total_time.png"
+      style="width:100%"
+      />
+  </div>
+</center>
+
 # 6. Reproducibility Assessment of the Paper
-
-Evaluate the paper itself:
-
-- Was the methodology clearly described?
-- Was the artifact usable?
-- How difficult was reproduction?
-
 ## 6.1 Paper evaluation
+The paper was well-organized, clearly answering to the research questions and well motivating their relevance, also sharing their experience in Alibaba Datacenters. HPCC designed was well described both with algorithm's pseudocode and single explanations of windows adjustments. In the end, we have not faced problem in understanding techniques implemented by HPCC.
+
+Experimental results were clearly organized and described, properly stating network topologies, traffic distributions and insights on why these results were expected. However, as we pointed out in section 3.4.1., some details and definition were missing, in particular, authors state *PFC pause duration* as one of the performance metrics but there was no definition on how the Fraction of pause time was computed (eg. if considering just the time in which at least one interface was paused or by summing up each pause duration). 
 
 ## 6.2 Replication Package evaluation
+We appreciated that the entire replication package was built upon an NS3 distribution, making it easier to run it an modifying it. While the generation of L3 traces was pretty straigh-forward, there are some problems we faced in further steps of our analysis:
+- apart for the FCT plots, there were no scripts to easily extract from L3 traces information needed to reproduce the plots. In particular, throughput, queue lenghts, end-to-end latencies and PFC pauses durations have not been included;
+- the $W_{AI}$ parameter which the paper always state as a Window size, the artifact considered it as a rate, for which we had to deduct how to convert;
+- one of the results we have been trying to reproduce were the ones in HPCC figures 13a and 13b. The artifact does not provide any way to run the HPCC algorithm with different response-policies (just the `fast_react` flag in configuration parameters). We believe that to effectively reproduce these results is necessary to directly modify the HPCC algorithm;
+- in order to understand how to put incast above traffic for HPCC comparison experiments we had to look at a Github issue (`#36`) opened by an user attempting to reproduce these results, since neither the paper nor the artifact provided insights on how to simulate them.
+
 
 # 7. Conclusion
 

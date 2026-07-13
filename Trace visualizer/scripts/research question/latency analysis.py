@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 START_TIME = 2000000000
 END_TIME = 2020000000
 
-FOLDER_NAME = "filtered_fbhdp_L50_T0.02"
-OUTPUT_FOLDER_NAME = "LATENCY_hadoop_50%"
+FOLDER_NAME = "googl_L30_i2_traces"
+OUTPUT_FOLDER_NAME = "LATENCY_google_30%_incast"
 
 colors = [
     "#A020F0",  # viola
@@ -124,7 +124,7 @@ def compute_packet_latencies(filename):
                 continue
 
             if ts > END_TIME:
-                break
+                continue
 
             node = int(parts[1].split(":")[1])
 
@@ -178,7 +178,7 @@ def compute_packet_latencies(filename):
                 continue
 
             if ts > END_TIME:
-                break
+                continue
 
             node = int(parts[1].split(":")[1])
 
