@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 START_TIME = 2000000000
 END_TIME = 2020000000
 
-FOLDER_NAME = "googl_L30_i2_traces"
-OUTPUT_FOLDER_NAME = "LATENCY_google_30%_incast"
+FOLDER_NAME = "filtered_fbhdp_L50_T0.02"
+OUTPUT_FOLDER_NAME = "LATENCY_fbhdp_50"
 
 colors = [
     "#A020F0",  # viola
