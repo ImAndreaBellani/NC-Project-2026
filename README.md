@@ -1,24 +1,22 @@
 # NC-Project-2026
 Repository of NETWORK COMPUTING Lab Project. Authors: Andrea Bellani, Andrea Migliorini
 
-## Tentative schedule
-| Weeks             | Goal                                |
-| ----------------- | ----------------------------------- |
-| Week 1            | Deeper paper analysis               |
-| Week 2            | Experiment design                   |
-| Week 3            | Experiment results                  |
-| Week 4            | Further exploration                 |
-| Week 5            | Further exploration                 |
-| Week 6            | Project closing                     |
+<table>
+  <tr>
+    <th>Paper selected</th>
+    <th>Y. Li et al. : HPCC: High Precision Congestion Control. In SIGCOMM '19, August 19–23, 2019, Beijing, China, © 2019 Association for Computing Machinery.</th>
+  </tr>
+  <tr>
+    <th>Results reproduced</th>
+    <th>Figures 11 and 14</th>
+  </tr>
+  <tr>
+    <th>Research question investigated </th>
+    <th>Testing CC algorithms on different traffic distributions</th>
+  </tr>
+</table>
 
-### Introductive questions (Week 1)
-* The problem the paper addresses and its importance;
-* The key ideas behind its solution and its approach;
-* The main contributions;
-* which results should be re-produced and why?
-* some brainstorming on new research questions.
-
-### NS3 experimentation (Week 2)
-* Installing NS3;
-* Experimenting with ns3;
-* Checking previous week's work and correcting it
+## Project structure
+- `/HPCC` : contains our copy of HPCC replication package (pulled from [alibaba-edu/High-Precision-Congestion-Control](https://github.com/alibaba-edu/High-Precision-Congestion-Control)) to which we added our `traffic_gen/traffic_gen_incast.py` script to generate flows with incasts events;
+- `/REPORT` : contains our project report;
+- `/Trace visualizer` : contains all the scripts we implemented for our performance evaluation.
