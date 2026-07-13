@@ -134,6 +134,11 @@ def plot_all_cdfs(folder):
 
         x, y = read_cdf(file)
 
+        # Assicura che la CDF parta da 0
+        if y[0] != 0:
+            x = np.concatenate(([x[0]], x))
+            y = np.concatenate(([0], y))
+
         ax.plot(
             x,
             y,
@@ -186,8 +191,6 @@ def plot_all_cdfs(folder):
     )
 
     plt.close()
-
-
 
 # =====================================================
 # MAIN

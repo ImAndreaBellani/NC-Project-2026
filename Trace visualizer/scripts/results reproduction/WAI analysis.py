@@ -10,11 +10,12 @@ import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 
-START_TIME          = 2000000000
-END_TIME_QUEUE      = 2090000000
-END_TIME_THROUGHPUT = 2010000000
+START_TIME          = 2000020000
+END_TIME_QUEUE      = 2010020000
+END_TIME_THROUGHPUT = 2010020000
 
 SAMPLING_INTERVAL = 1000
+SAMPLING_INTERVAL_THROUGHPUT = 1000
 
 RTT = 4
 
@@ -128,10 +129,11 @@ def calcola_throughput_e_queues_lengths(nome_file):
                 flow_id = identifica_flow_id(tr)
                 if tr.time > END_TIME_THROUGHPUT:
                     break
-                if tr.type == "DATA" and tr.event_kind == "Recv" and tr.node == INCAST_DESTINATION:
+                if tr.time >= START_TIME and tr.type == "DATA" and tr.event_kind == "Recv" and tr.node == INCAST_DESTINATION:
                     last_time = START_TIME
                     if len(flows[flow_id]) > 0:
                         last_time = flows[flow_id][-1]["ts"]
+
                     flows[flow_id].append(
                         {
                             "ts": tr.time,
@@ -149,13 +151,14 @@ def calcola_throughput_e_queues_lengths(nome_file):
                 tr = Trace(linea)
                 queue_id = identifica_queue_id(tr)
 
+                if tr.time < START_TIME:
+                    continue
                 if tr.time > END_TIME_QUEUE:
                     break
-
                 if not queue_id in queues:
                     queues[queue_id] = []
 
-                if tr.time >= next_sampling_time and queue_id == "0:1:3":
+                if tr.time >= next_sampling_time and queue_id == "0:1:3" : #and tr.qlen>0:
                     queues[queue_id].append({"ts": tr.time, "qLen": tr.qlen / 1000})
                     next_sampling_time += SAMPLING_INTERVAL
 
@@ -257,9 +260,14 @@ def plot_throughput_evolution(flows, output_folder, label):
             for t in times
         ]
 
+        # Riduce l'offset e converte in ms
+        times_ms = [
+            (t - 2000020000) / 1_000_000
+            for t in times
+        ]
 
         ax.plot(
-            times,
+            times_ms,
             values,
             color=colors[i % len(colors)],
             linewidth=1.5,
@@ -267,7 +275,9 @@ def plot_throughput_evolution(flows, output_folder, label):
         )
 
 
-    ax.set_xlabel("Time")
+    ax.set_title(f"flows throughputs evolutions with $W_{{AI}}$ = {label}")
+
+    ax.set_xlabel("Time (ms)")
     ax.set_ylabel("Throughput (Gbps)")
 
 
@@ -275,6 +285,8 @@ def plot_throughput_evolution(flows, output_folder, label):
     ax.spines["right"].set_visible(False)
 
     _stile_assi(ax)
+
+    ax.set_ylim(0, 100)
 
 
     plt.tight_layout()
@@ -405,8 +417,7 @@ def plot_queue_distribution(all_qLens, queue_id, cartella):
 
     plt.close()
 
-def apply_throughput_holder(flow_data, start_time=START_TIME, end_time=END_TIME_THROUGHPUT,
-                            sampling_interval=SAMPLING_INTERVAL):
+def apply_throughput_holder(flow_data, start_time=START_TIME, end_time=END_TIME_THROUGHPUT):
     """
     Applica un zero-order hold ai throughput di un flow.
 
@@ -436,7 +447,7 @@ def apply_throughput_holder(flow_data, start_time=START_TIME, end_time=END_TIME_
     idx = 0
     current_value = 0
 
-    for t in range(start_time, end_time, sampling_interval):
+    for t in range(start_time, end_time, SAMPLING_INTERVAL_THROUGHPUT):
 
         # Aggiorna il valore quando raggiungo un nuovo campione
         while idx < len(samples) and samples[idx]["ts"] <= t:
@@ -517,7 +528,7 @@ if __name__ == "__main__":
     all_flows = {}
     all_qLens = {}
     for i in range(1, 1000):
-        FILE_NAME = "mix_incast_incastflow3_hp95ai"+str(i)+".tr.txt"
+        FILE_NAME = "filtered_mix_incast_incastflow3_hp95ai"+str(i)+".tr.txt"
         INPUT_FOLDER_ROOT = Path(Path("..") / ".." / "data" / "input" / FILE_NAME).resolve()
         window_size = from_rate_to_window(i)
 

@@ -1,8 +1,8 @@
 import matplotlib as mpl
 import operator as op
-FILE_NAME = "FCT_cachefollow_50%_incast"
+FILE_NAME = "cache_L30_T0.02_I2 fct comparisons"
 REAL_FILE_NAME = FILE_NAME+".txt"
-INCAST = op.contains(FILE_NAME, "incast")
+INCAST = op.contains(FILE_NAME, "I2")
 
 colors = [
     "#A020F0",  # viola
@@ -67,7 +67,7 @@ CC_STYLE = {
     "TIMELY":     dict(color=colors[1], linestyle="--", linewidth=1.8),
 }
 
-def plot_fct_99pct():
+def plot_fct_95pct():
 
     if OUTPUT_FOLDER.exists():
         shutil.rmtree(OUTPUT_FOLDER)
@@ -91,7 +91,7 @@ def plot_fct_99pct():
             **CC_STYLE[cc]
         )
 
-    x_incast = 500 * 1024
+    x_incast = 500 * 1000
     # Linea verticale a 500K
     if INCAST:
         ax.axvline(
@@ -157,12 +157,12 @@ def plot_fct_99pct():
 
     labels = []
     for x in xticks:
-        if x == 10485760:
+        if x == 10000000:
             labels.append("10 M")
-        elif x >= 1024 * 1024:
-            labels.append(f"{int(x/(1024*1024))}M")
-        elif x >= 1024:
-            labels.append(f"{int(x/1024)}K")
+        elif x >= 1000 * 1000:
+            labels.append(f"{int(x/(1000*1000))}M")
+        elif x >= 1000:
+            labels.append(f"{int(x/1000)}K")
         else:
             labels.append(str(int(x)))
 
@@ -219,4 +219,4 @@ def plot_fct_99pct():
     plt.close(fig)
 
 if __name__ == "__main__":
-    plot_fct_99pct()
+    plot_fct_95pct()

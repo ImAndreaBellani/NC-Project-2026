@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 START_TIME = 2000000000
 END_TIME = 2020000000
 
-FOLDER_NAME = "alistorage_L50_T0.02_I2"
-OUTPUT_FOLDER_NAME = "PFC_alistorage_50%_incast"
+FOLDER_NAME = "pfc_cache_L50I2"
+OUTPUT_FOLDER_NAME = "PFC"+FOLDER_NAME
 
 colors = [
     "#A020F0",  # viola
