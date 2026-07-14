@@ -1,3 +1,5 @@
+# Trace visualizer scripts
+
 - `/research question` : contains scripts to generate report section 5. plots;
 - `/results reproduction` : contains scripts to generate report section 4. plots;
 - `/utils` : contains a script we used to plot traffic distributions CDFs and a utility script to calculate the $W_{AI}$ rule of thumb.
