@@ -528,7 +528,7 @@ if __name__ == "__main__":
     all_flows = {}
     all_qLens = {}
     for i in range(1, 1000):
-        FILE_NAME = "filtered_mix_incast_incastflow3_hp95ai"+str(i)+".tr.txt"
+        FILE_NAME = "mix_incast_incastflow3_hp95ai"+str(i)+".tr.txt"
         INPUT_FOLDER_ROOT = Path(Path("..") / ".." / "data" / "input" / FILE_NAME).resolve()
         window_size = from_rate_to_window(i)
 

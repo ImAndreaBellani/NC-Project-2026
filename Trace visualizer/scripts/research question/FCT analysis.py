@@ -1,8 +1,8 @@
 import matplotlib as mpl
 import operator as op
-FILE_NAME = "cache_L30_T0.02_I2 fct comparisons"
+FILE_NAME = "FCT_cachefollow_50%"
 REAL_FILE_NAME = FILE_NAME+".txt"
-INCAST = op.contains(FILE_NAME, "I2")
+INCAST = op.contains(FILE_NAME, "incast")
 
 colors = [
     "#A020F0",  # viola
@@ -46,8 +46,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import LogLocator, ScalarFormatter
 
 
-INPUT_FILE = Path("data") / "input" / REAL_FILE_NAME
-OUTPUT_FOLDER = Path("data") / "output" / FILE_NAME
+INPUT_FILE = Path("..") / ".." / "data" / "input" / REAL_FILE_NAME
+OUTPUT_FOLDER = (Path("..") / ".." / "data" / "output" / FILE_NAME)
 
 CC_NAMES = [
     "DCQCN+win",

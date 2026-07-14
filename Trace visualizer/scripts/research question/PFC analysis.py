@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 START_TIME = 2000000000
 END_TIME = 2020000000
 
-FOLDER_NAME = "pfc_cache_L50I2"
+FOLDER_NAME = "cache_L50_T0.02"
 OUTPUT_FOLDER_NAME = "PFC"+FOLDER_NAME
 
 colors = [

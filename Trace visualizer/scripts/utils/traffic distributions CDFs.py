@@ -14,7 +14,6 @@ INPUT_FOLDER = Path("..") / ".." / Path("data") / Path("input") / Path("traffic_
 OUTPUT_FILE = Path("..") / ".." / Path("data") / Path("output") / Path("traffic_cdfs.png")
 
 
-
 colors = [
     "#A020F0",  # viola
     "#2CA25F",  # verde
