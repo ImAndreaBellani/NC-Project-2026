@@ -77,7 +77,7 @@ Senders normally start in the agnostic phase and pass to the adaptive one after 
 
 Instead of directly updating sending window starting from the previous value, sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT; to be more precise, it is updated only when the ACK of the first packet sent after the last $W^C$ update is received. This technique is implemented to ensure what authors call *fast reaction without overreaction*. In other words, it is essential that the sender quickly reacts to changes (so, every-ACK received), but adjusting its window completely every ACK received would make the sender overreact since ACKs interleaved less than an RTT present almost the same information. So, the window adjustment is performed per-ACK starting from a reference window ($W^C$) that is only updated every-RTT.
 
-Note that HPCC requires just $3$ parameters to be configured, which purpose is quite orthogonal and straight-forward:
+Note that HPCC requires just $3$ parameters to be configured, each of them serves a separate and straightforward role.
 <center>
   <table>
     <tr>
