@@ -19,14 +19,14 @@ Y. Li, R. Miao, H. H. Liu, Y. Zhuang, F. Feng, L. Tang, Z. Cao, M. Zhang, F. Kel
 
 # 1. Introduction
 
-HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks. In particular it leverages INT-MD(In-band Network Telemetry - EMbed Data) to get precise queue lengths information, making it possible to use a high precision window-based method in high speed RDMA networks. 
+HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks. In particular, it is a window-based Congestion Control algorithm designed for high-speed RDMA (*Remote Direct Memory Access*) networks that leverages INT-MD (*In-band Network Telemetry - EMbed Data*) to get precise queue lenghts information.
 
 In the paper, authors explain the motivation and theoretical foundations behind HPCC, its design and test its effectiveness with both testbed and NS-3 simulations, comparing it with state-of-art other Congestion Control algorithms for Datacenter Networks.
 
 ## 1.1. HPCC main contributions
-The main contribution of the paper is the leverage of INT to improve the Congestion Control on large-scale and high-speed networks. The paper present a detailed description of the in-production Congestion Control mechanism running in the AliBaba Group datacenters, which can provide insights for the design of new cc mechanisms that leverage INT (which had not been  leveraged by other state-of-art CC mechanisms yet).
+The main contribution of the paper is the leverage of INT to improve the Congestion Control on large-scale and high-speed networks. The paper present a detailed description of the in-production Congestion Control mechanism running in the Alibaba Group datacenters, which can provide insights for the design of new CC (Congestion Control) mechanisms that leverage INT (which had not been  leveraged by other state-of-art CC mechanisms yet).
 
-Moreover, the paper also shares AliBaba production experiences on the difficulties to operate on RDMA networks with the state-of-art CC mechanisms and clarifies the challenges of designing a Congestion Control algorithm for RDMA networks. 
+Moreover, the paper also shares Alibaba production experiences on the difficulties to operate on RDMA networks with the state-of-art CC mechanisms and clarifies the challenges of designing a Congestion Control algorithm for RDMA networks. 
 
 
 ## 1.2. Challenges in achieving High Precision Congestion Control for RDMA applications
@@ -37,7 +37,7 @@ The demand of high-speed Datacenter networks is driven by two main trends, accor
 - new *resource disaggregation* and *heterogeneous computing* architectures require both low network latency levels and high network bandwidth;
 - new applications (eg. large-scale ML training on high computation speed devices) that periodically trasfer large volume data with super-fast storage and computation speeds, often making the network the real performance bottleneck.
 
-To sustain these requirements, new approaches started to offload network stacks into hardware. Authors, in particular, started to deploy large-scale networks with *RDMA* (Remote Direct Memory Access) over *RoCEv2* (RDMA over Converged Ethernet Version 2).
+To sustain these requirements, new approaches started to offload network stacks into hardware. Authors, in particular, started to deploy large-scale networks with RDMA over *RoCEv2* (RDMA over Converged Ethernet Version 2).
 
 ### 1.2.2. Why design a new Congestion Control algorithm
 
@@ -45,7 +45,7 @@ HPCC tries to cope with the foundamental challenges authors have experienced wit
 
 Authors highlight that in RDMA networks:
 - many flows starting at line rate, if not properly controlled, will cause severe congestions and deep packet queueing;
-- congestions lead switches to trigger to trigger PFC pauses, which cause huge traffic drops;
+- congestions lead switches to trigger PFC pauses, which cause huge traffic drops;
 - short flows can experience sudden peaks in latency due to deep packet queueing.
 
 To tame the problems mentioned above, an adequate Congestion Control mechanism is essential however, state-of-art CC algorithms (such as DCQCN and TIMELY) face important limitations, such as:
@@ -77,7 +77,7 @@ Senders normally start in the agnostic phase and pass to the adaptive one after 
 
 Instead of directly updating sending window starting from the previous value, sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT; to be more precise, it is updated only when the ACK of the first packet sent after the last $W^C$ update is received. This technique is implemented to ensure what authors call *fast reaction without overreaction*. In other words, it is essential that the sender quickly reacts to changes (so, every-ACK received), but adjusting its window completely every ACK received would make the sender overreact since ACKs interleaved less than an RTT present almost the same information. So, the window adjustment is performed per-ACK starting from a reference window ($W^C$) that is only updated every-RTT.
 
-Note that HPCC requires just $3$ parameters to be configured, which mens it is quite easy to tune to any workload:
+Note that HPCC requires just $3$ parameters to be configured, which purpose is quite orthogonal and straight-forward:
 <center>
   <table>
     <tr>
@@ -123,7 +123,7 @@ Therefore, for a 16 to 1 solo-incast, considering $\eta = 0.95$ and $W_{init} = 
 </center>
 
 We see from Figure 2 that:
-- a $W_{AI}$ set to a value really lower than the one suggested by the rule of thumb leads to a noticeble imbalance among flow throughput, which we can see as an "unfair" behavior since it gives more bandwidth to some flows and a lower aggregated average throughput;
+- a $W_{AI}$ set to a value really lower than the one suggested by the rule of thumb leads to a noticeble imbalance among flows throughputs, which we can see as an "unfair" behavior since it gives more bandwidth to some flows and a lower aggregated average throughput;
 - a $W_{AI}$ set to a value really higher than the one suggested does not impact fairness but introduces higher tail-queue lengths and a slightly lower aggregated average throughput, which is less desirable.
 
 In conclusion, since a less complicated set of parameters to tune is one of the challenges of CC algorithms that HPCC tried to tame, from these results we can say that the simple rule of thumb identifies a good trade-off between queue lengths and fairness.
@@ -136,11 +136,11 @@ In conclusion, since a less complicated set of parameters to tune is one of the 
     src="figures/HPCC - Figure 11.jpg"
     style="width:100%;"
     />
-  <p><b>Figure 3: FCT slow down at 95-percentile, PFC and latency with FB_Hadoop (30% avg.load + 60-to-1 incast and 50% avg.load)</b></p>
+  <p><b>Figure 3: FCT (<i>Flow Completion Time</i>) slow down at 95-percentile, PFC and latency with FB_Hadoop (30% avg.load + 60-to-1 incast and 50% avg.load)</b></p>
 </center>
 
 In order to properly understand how HPCC behaves compared to other CC algorithms the authors decide to simulate the behaviour of various other CC algorithms used in RDMA plotting them based on flow completion time, latency and PFC pauses using widely accepted and publicly available data center traffic traces (in this case, FB_Hadoop).
-The graphs show that even in the case of sudden incast events hpcc still didnt trigger any PFC pauses.
+The graphs show that even in the case of sudden incast events HPCC still didnt trigger any PFC pauses.
 This clearly illustrates how much faster HPCC completes smaller flows than the other algorithms, and lower tail-latency compared to the others. Thus, accomplishing the stated goals of preventing PFC pauses and lowering the latency of packets.
 
 
@@ -229,7 +229,7 @@ In order to reproduce results shown in HPCC figures 14a and 14b we first gerated
 
 Considering the deviations mentioned in section 3.4.1.1. we analyzed both queue lengths and throughputs between  $20\ \mu s$ (i.e. $5\ RTT$s, for the topology considered) and $10.02\ ms$, since starting from $0\ \mu s$ lead us to 99-pcts (for $W_{AI}=5,25,150$ near $17 KB$) which we seen as consequences of the extremely high peak of in the queue lengths near the beginning of the simulation. Note that $20\ \mu s$ is the standard duration of the agnostic phase with $maxStage=5$ (as it is set by default).
 
-Queue lengths are counted just by looking at the parameter in the L3 traces and instant throughput is calculated as $\frac{tr.size}{last\_time - tr.time}$ (where $last\_time$ is the time of the last throughput measurement for that flow and $tr.size$ is the packet size) each time a packet arrives to the destination node. Then, to estimate the average throughput of a flow from the collection of the instant measurements, we held each sample until the next one and sampled each collection every $1\ \mu s$ (as HPCC paper does for Queue Lengths).
+Queue lengths are counted just by looking at the parameter in the L3 traces and instant throughput is calculated as $\frac{tr.size}{last\_time - tr.time}$ (where $last\_time$ is the time of the last throughput measurement for that flow, $tr.size$ is the packet size and $tr.time$ is the instant in which the packet was received by the destination node) each time a packet arrives to the destination node. Then, to estimate the average throughput of a flow from the collection of the instant measurements, we held each sample until the next one and sampled each collection every $1\ \mu s$ (as HPCC paper does for Queue Lengths).
 
 <center>
   <img
@@ -544,7 +544,7 @@ For each of the three chosen distributions, we performed an analysis analogue to
 
 As we can see, HPCC outperforms any other algorithm regardless of traffic distributions or loads and has never triggered PFC pauses. This result positively answers to our question confirming HPCC as a better traffic-agnostic CC algorithm that successfuly meets the desired properties of low FCTs for short flows, minimal end-to-end latencies and zero PFC triggering. Even in presence of higher loads with incasts.
 
-More in detail, experiments with AliStorage show similar FCTs and PFC pauses proportions to the ones obtained with FB_Hadoop distribution, however, the number of PFC pauses are slightly increased and end-to-end latencies distributions are more contained.
+More in detail, experiments with AliStorage show similar FCTs and PFC pauses proportions to the ones obtained with FB_Hadoop distribution however, the number of PFC pauses are slightly increased and end-to-end latencies distributions are more contained.
 
 No PFC pauses were detected in incast-free experiments apart for CacheFollower distribution, in which TIMELY experienced $3.7\ ms$ of pause time. In general, we see how, regardless of distributions, window-based schemes tend to have almost no PFC-pauses, lower FCTs and more contained latencies distributions.
 
@@ -560,7 +560,7 @@ Experimental results were clearly organized and described, properly stating netw
 ## 6.2 Replication Package evaluation
 We appreciated that the entire replication package was built upon an NS3 distribution, making it easier to run it an modifying it. While the generation of L3 traces was pretty straigh-forward, there are some problems we faced in our analysis:
 - apart for the FCT plots, there were no scripts to easily extract from L3 traces information needed to reproduce the plots. In particular, throughput, queue lenghts, end-to-end latencies and PFC pauses durations have not been included;
-- the $W_{AI}$ parameter which the paper always describe it as a window size, the artifact considered it as a rate, which we had to deduct how to convert;
+- the $W_{AI}$ parameter, which the paper always describes as a window size, the artifact considered it as a rate, which we had to deduct how to convert;
 - one of the results we had tried to reproduce were the ones in HPCC figures 13a and 13b. The artifact does not provide any way to run the HPCC algorithm with different response-policies (just the `fast_react` flag in configuration parameters). We believe that to effectively reproduce these results is necessary to heavily modify the HPCC algorithimn outside of `rdmahw.cc`, as after a fair few attempts, our results didnt match the paper(for brevity we didnt include this in the paper).
 - in order to understand how traffic with incasts was generated in the paper's experiments we had to look at a Github issue [#36](https://github.com/alibaba-edu/High-Precision-Congestion-Control/issues/36) opened by an user attempting to reproduce these results, since neither the paper nor the artifact provided insights on how to simulate them.
 
