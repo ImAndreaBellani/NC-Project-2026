@@ -19,7 +19,7 @@ Y. Li, R. Miao, H. H. Liu, Y. Zhuang, F. Feng, L. Tang, Z. Cao, M. Zhang, F. Kel
 
 # 1. Introduction
 
-HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks. In particular, it is a window-based Congestion Control algorithm designed for high-speed RDMA networks that leverages INT-MD (*In-band Network Telemetry - EMbed Data*) to get precise queue lenghts information.
+HPCC: High Precison Congestion Control presents a novel approach to Congestion Control for Datacenter networks. In particular it leverages INT-MD(In-band Network Telemetry - EMbed Data) to get precise queue lengths information, making it possible to use a high precision window-based method in high speed RDMA networks. 
 
 In the paper, authors explain the motivation and theoretical foundations behind HPCC, its design and test its effectiveness with both testbed and NS-3 simulations, comparing it with state-of-art other Congestion Control algorithms for Datacenter Networks.
 
@@ -44,18 +44,19 @@ To sustain these requirements, new approaches started to offload network stacks 
 HPCC tries to cope with the foundamental challenges authors have experienced with RoCEv2 and overcome limitations of other state-of-art Congestion Control mechanism.
 
 Authors highlight that in RDMA networks:
-- many flows starting at line rate, if not properly controlled, easily cause severe congestions and deep packet queueing;
-- congestions lead switches to trigger many PFC pauses, which can cause huge traffic drops;
-- short flows can experience really long latencies due to deep packet queueing.
+- many flows starting at line rate, if not properly controlled, will cause severe congestions and deep packet queueing;
+- congestions lead switches to trigger to trigger PFC pauses, which cause huge traffic drops;
+- short flows can experience sudden peaks in latency due to deep packet queueing.
 
 To tame the problems mentioned above, an adequate Congestion Control mechanism is essential however, state-of-art CC algorithms (such as DCQCN and TIMELY) face important limitations, such as:
 - slow convergence of iterative methods that leverage coarse-grained feedback signals (eg. ECN);
 - techniques inherently based on mechanisms that wait queues build-ups (eg. ECN marking or detecting RTT increasing) to adjust sender rates;
 - complicated parameter tuning due to an high number of parameters or laking of simple rules of thumb to set them.
 
-Authors highlight how these limitation are a consequence of the heuristics implented to adjust sender rates accordingly to current network utilization. Instead, HPCC overcomes these limitations leveraging INT, which enables senders to continuosly and precisely computing network utilization in order to quickly adjust their windows to the current network load.
+Authors highlight how these limitation are a consequence of the heuristics implented to adjust sender rates accordingly to a estimated network utilization. Instead, HPCC overcomes these limitations leveraging INT, which enables senders to continuosly and precisely compute network utilization in order to quickly adjust their windows to the current network load.
 
 ## 1.3. How HPCC works
+
 
 <center>
   <img
@@ -66,7 +67,7 @@ Authors highlight how these limitation are a consequence of the heuristics imple
   <p><b>Figure 1: The overview of HPCC framework</b></p>
 </center>
 
-The main keypoint of HPCC is the usage of INT-MD (*In-band Network Telemetry - EMbed Data*) to obtain precise link loads in particular, each switch in the path enqueues an INT header that contains various information which sender can use to proactively adjust its sending rate (eg. Queue Length). Instead of relying on heuristics or iterative approaches, senders receive a per-ACK updates to rapidly adjust the sending window, with a minimal set of algorithm's parameters.
+The main keypoint of HPCC is the usage of INT-MD (*In-band Network Telemetry - EMbed Data*) to obtain precise link loads in particular, each switch in the path enqueues an INT header that contains various information which sender can use to proactively adjust its sending rate (eg. Queue Length). Instead of relying on heuristics or iterative approaches, senders receive per-ACK updates to rapidly adjust the sending window, with a minimal set of parameters.
 
 When a new ACK arrives, the sender computes the current network utilization $U$ using information retrived from the INT headers collected over the flow path and updates its window. In particular, we can distinguish two different phases in the HPCC algorithm (the following terminology is introduced for clarity):
 - *agnostic phase* : the sender increases its window regardless of network utilization $U$, while still calculating it;
@@ -74,9 +75,9 @@ When a new ACK arrives, the sender computes the current network utilization $U$ 
 
 Senders normally start in the agnostic phase and pass to the adaptive one after a certain number of RTTs or if $U\geq\eta$.
 
-Instead of directly updating sending window starting from the previous value, sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT; to be more precise, it is updated only when the ACK of the first packet sent from the last $W^C$ update is received. This technique is implemented to ensure what authors call *fast reaction without over-reaction*. In other words, it is essential that the sender quickly reacts to changes (so, every-ACK received), but adjusting its window completely every ACK received would make the sender over-react since ACKs interleaved less than an RTT present almost the same information. So, the window adjustment is performed per-ACK starting from a reference window ($W^C$) that is updated every-RTT.
+Instead of directly updating sending window starting from the previous value, sender always adjusts its window from what we can call a *reference window* $W^C$ that is updated nearly every-RTT; to be more precise, it is updated only when the ACK of the first packet sent after the last $W^C$ update is received. This technique is implemented to ensure what authors call *fast reaction without overreaction*. In other words, it is essential that the sender quickly reacts to changes (so, every-ACK received), but adjusting its window completely every ACK received would make the sender overreact since ACKs interleaved less than an RTT present almost the same information. So, the window adjustment is performed per-ACK starting from a reference window ($W^C$) that is only updated every-RTT.
 
-Note that HPCC requires just $3$ parameters to be configured, which meaning is quite easy to understand:
+Note that HPCC requires just $3$ parameters to be configured, which mens it is quite easy to tune to any workload:
 <center>
   <table>
     <tr>
@@ -85,7 +86,7 @@ Note that HPCC requires just $3$ parameters to be configured, which meaning is q
     <tr>
       <th>$\eta$</th>
       <td>Network utilization threshold that triggers the adaptive phase</td>
-      <td>Close to $1$, depening on how much queues headroom is desired. Lower values increase network stability while higher values will increase network utilization.</td>
+      <td>Close to $1$, depening on how much utilization headroom is desired. Lower values increase network stability while higher values will increase network utilization.</td>
     </tr>
     <tr>
       <th>$W_{AI}$</th>
@@ -107,8 +108,9 @@ Note that HPCC requires just $3$ parameters to be configured, which meaning is q
 # 2. Selected Result
 ## 2.1. Fairness and queue size with $W_{AI}$
 
-Authors investigate the effect of different choices of $W_{AI}$ by simulating a 16 to 1 incast within a single rack. Properly understanding how to tune $W_{AI}$ is important to ensure fairness while maximizing the aggregated throughput. Authors then provide a simple rule-of-thumb to set it: $W_{AI} = \frac{W_{init}\times(1-\eta)}{N}$, where $N$ is the (maximum) number of expected concurrent flows on a single link.
+ Properly understanding how to tune $W_{AI}$ is important to ensure fairness while maximizing the aggregated throughput. Authors then provide a simple rule-of-thumb to set it: $W_{AI} = \frac{W_{init}\times(1-\eta)}{N}$, where $N$ is the (maximum) number of expected concurrent flows on a single link.
 
+Authors investigate the effect of different choices of $W_{AI}$ by simulating a 16 to 1 incast within a single rack.
 Therefore, for a 16 to 1 solo-incast, considering $\eta = 0.95$ and $W_{init} = 100 Gbps \times 4\mu s = 50 KB$ leads to $W_{AI} \approx 156 B$. As a consequence, we expect that different $W_{AI}$ settings affect negatively algorithm performances.
 
 <center>
@@ -189,7 +191,7 @@ We ran our experiments on two different topologies:
 - for sections 4.2. and 5. we used the fat-tree topology described in `simulation/mix/fat.txt` (which is also the one used in HPCC section 5.1)
 ### 3.3.2. Traffic generation
 - for section 4.2 and 5.2 we generated the flows with a custom script `traffic_gen_incast.py` passing `-c <DISTRIBUTION_FILE> -n 320 -l <LOAD FRACTION> -b 100G -t 0.02` (which are, regardless of `-t`, coherent with the ones described in HPCC section 5.1.) while for flows with incasts passing `-c <DISTRIBUTION_FILE> -n 320 -l <LOAD FRACTION> -b 100G -t 0.02 -i 1 -p 2` (`-i 1` enables incast generation and `-p` details the incast percentage);
-- for section 4.1 we written explictly the flows (see section 3.4.).
+- for section 4.1 we have manually written the flows (see section 3.4.).
 ### 3.3.3. Simulation parameters
 - we always ran the simulations with `run.py --cc <ccAlgorithm> --trace <Flow> --bw 100 --topo <Topology> --hpai <Rate_AI> --enable_tr 1` without any changes to the default algorithm configuration files.
 
@@ -213,13 +215,13 @@ We produced our experiments with no Software version differences according to th
 
 | Deviation | What is missing in the paper/artifact | What we chose |
 |-----------|------------------------------|---------------|
-| **Generation of flows with random incast** | the paper establishes in 5.3 how they reproduced the incasts events but doesnt establish what does it mean by "network capacity" nor offers a program to create the flows | we create a new version of `traffic_gen.py`: `traffic_gen_incast.py`. This script uses a Poisson distribution based on the probability of a single server being the receiver of a incast event to generate these events.|
+| **Generation of flows with random incast** | the paper establishes in 5.3 how they reproduced the incasts events but doesnt establish what does it mean by "network capacity" nor offers a program to create the flows | we created a new version of `traffic_gen.py`: `traffic_gen_incast.py`. This script uses a Poisson distribution based on the probability of a single server being the receiver of a incast event to generate these events.|
 | **PFC pauses evaluation** | It is not stated how the fraction of pausing time is calculated (i.e. by summing the puasing time of each interface or calculating just the time fraction the simulation was affected by at least one pause) | We calculated both the number of pauses verified in the simulation and the overall time each interface has been paused |
 | **Latency evaluation** | Artifact did not include any script for evaluating end-to-end latencies from L3 traces | We implemented a script to calculate them (see section 4.1.).
 
 
 ### 3.4.2. Deviations for complexity reasons
-The length of the traffic established of $0.1s$ generated in simulation hundreds of GBs of traces, so we reduced the traces to ($0.02s$) this  reduced the size while still mantaining statistical significance, with traces still the size of around $50 GBs$.
+The length of the traffic ($0.1s$) simulated in the paper generated hundreds of GBs of traces, so we reduced the traces to ($0.02s$) this  reduced the size to around $50 GBs$ while still mantaining statistical significance.
 
 # 4. Experiment Result
 ## 4.1. Fairness and queue size with $W_{AI}$ reproduction
@@ -227,7 +229,7 @@ In order to reproduce results shown in HPCC figures 14a and 14b we first gerated
 
 Considering the deviations mentioned in section 3.4.1.1. we analyzed both queue lengths and throughputs between  $20\ \mu s$ (i.e. $5\ RTT$s, for the topology considered) and $10.02\ ms$, since starting from $0\ \mu s$ lead us to 99-pcts (for $W_{AI}=5,25,150$ near $17 KB$) which we seen as consequences of the extremely high peak of in the queue lengths near the beginning of the simulation. Note that $20\ \mu s$ is the standard duration of the agnostic phase with $maxStage=5$ (as it is set by default).
 
-Queue lengths are counted just by looking to the parameter in the L3 traces and instant throughput is calculated as $\frac{tr.size}{last\_time - tr.time}$ (where $last\_time$ is the time of the last throughput measurement for that flow and $tr.size$ is the packet size) each time a packet arrives to the destination node. Then, to estimate the average throughput of a flow from the collection of the instant measurements, we held each sample until the next one and sampled each collection every $1\ \mu s$ (as HPCC paper does for Queue Lengths).
+Queue lengths are counted just by looking at the parameter in the L3 traces and instant throughput is calculated as $\frac{tr.size}{last\_time - tr.time}$ (where $last\_time$ is the time of the last throughput measurement for that flow and $tr.size$ is the packet size) each time a packet arrives to the destination node. Then, to estimate the average throughput of a flow from the collection of the instant measurements, we held each sample until the next one and sampled each collection every $1\ \mu s$ (as HPCC paper does for Queue Lengths).
 
 <center>
   <img
@@ -280,19 +282,18 @@ To better validate the coherence of our results w.r.t. to the L3 traces we gener
 
 ## 4.2. Comparison of HPCC with other state-of-art CC algorithms (NS-3 simulations) reproduction
 
-To reproduce figure $11$ from the paper we had to create a system capable of generating realistic incast events across servers of the topology. In the paper they establish it’s a $60$ to $1$ incast of $500\ \mathrm{kB}$, so an incast event is $60$ new flows of $500\ \mathrm{kB}$. We had to discover separately that in order to add a $2\%$ load incast to the experiment (as HPCC paper does) the network capacity incasts had to occupy was $n_{\mathrm{servers}} \times \mathrm{NIC}_{\mathrm{bw}} \times 0.02$.
-
+To reproduce figure $11$ from the paper we had to create a system capable of generating realistic incast events across servers of the topology. In the paper they establish it’s a $60$ to $1$ incast of $500\ \mathrm{kB}$, so an incast event is $60$ new flows of $500\ \mathrm{kB}$. We had to find out that in order to add a $2\%$ load incast to the experiment (as HPCC paper does) the bandwith the incasts had to occupy was $n_{\mathrm{servers}} \times \mathrm{NIC}_{\mathrm{bw}} \times 0.02$. 
 We decided to use a Poisson distribution based on the expected number of incasts on a single server so that across $320$ servers on $100\ \mathrm{Gb}$ NICs and the $2\%$ load stated we expected to see $2667$ incast events, which corresponds to $\frac{320 \cdot \mathrm{NIC}_{\mathrm{bw}} \cdot 0.02}{60 \cdot 500\ \mathrm{KB}}$, validated experimentally by generating $10$ flows with this script.
 
-Once the script was validated we generated performed $2$ simulations with the distribution $\mathrm{FB\_Hadoop}$ with the parameters generally established in section $3.3.2$: one with incast enabled and at $30\%$ load and one with incast disabled and $50\%$ load (as also HPCC paper does).
+Once the script was validated we generated performed $2$ simulations with the distribution $\mathrm{FB\_Hadoop}$ with the parameters generally established in section $3.3.2$: one with incast enabled and at $30\%$ load and one with incast disabled and $50\%$ load, as established in the paper as well.
 
-We then simulated the behaviour of the CC algorithms represented in the paper, as this process is single core based this process will usually take hours on our homebuilt pc.
+We then simulated the behaviour of the CC algorithms represented in the paper; as this process is single core based this process will usually take hours on a homebuilt pc.
 
 After completing the simulation we used the `fct_analysis.py` and the `trace_reader.cpp` to derive FCT slowdown percentiles.
 
-The latency analysis was done by extracting the $5$ most common pair of servers in the first million lines and then evaluating their average latency between them across the entire trace. We experimented with picking $50$ random traces but it didn’t correspond well to the results in the paper, as well as not filtering L3 traces but running simulations up to $1\ ms$. Since no script was provided in the artifact to calculate the end-to-end latencies we implemented an ad hoc one. Simply, first traces are analyzed to detect which is the residence node of each server, then end-to-end is calculated as the time needed for the packet to traverse the network from the source node to the destination one.
+The latency analysis was done by extracting the $5$ most common pair of servers in the first million lines and then evaluating their average latency between them across the entire trace. We experimented with picking $50$ random traces but it didn’t correspond well to the results in the paper, as well as not filtering L3 traces but running small simulations of $1\ ms$. Since no script was provided in the artifact to calculate the end-to-end latencies we implemented an ad hoc one. Simply, first traces are analyzed to detect which is the residence node of each server, then end-to-end is calculated as the time needed for the packet to traverse the network from the source node to the destination one.
 
-With the PFC pauses instead we have had to determine what the authors actually meant by fraction of PFC time, as no clear definition was given. So, in order to obtain still relevant results for the paper question (i.e. measuring the PFC impact running each CC algorithm) we plotted both the number of PFC pauses verified during the simulation and the total amount of time interfaces passed in pause (i.e. the sum over all interfaces of the total amount of time each has been in pause). NS-$3$ artifact implementation already provides the report of PFC pauses and resumes events by interfaces, so counting them and evaluating their duration was pretty trivial. 
+With the PFC pauses instead we had to determine what the authors actually meant by fraction of PFC time, as no clear definition was given. So, in order to obtain still relevant results for the paper question (i.e. measuring the PFC impact running each CC algorithm) we plotted both the number of PFC pauses verified during the simulation and the total amount of time interfaces passed in pause (i.e. the sum over all interfaces of the total amount of time each has been in pause). NS-$3$ artifact implementation already provides the report of PFC pauses and resumes events by interfaces, so counting them and evaluating their duration was trivial. 
 
 <center>
   <div style="display:inline-block; width:32%;">
@@ -334,9 +335,9 @@ With the PFC pauses instead we have had to determine what the authors actually m
 
 The FCT analysis result corresponded quite well to the results shown by the paper, despite the smaller sample size. As we can see HPCC out-performs all other algorithms on short flows (i.e. $<250\ KB$), which was the goal stated in the paper.
 
-The end-to-end latency analysis still shows HPCC as the best performing algorithm and clearly shows how not window-based algoritms struggle in keeping low tail-latency levels, especially if incasts are present. However, latencies values are quite different from the ones shown in the paper, especially for algorithms that produce the highest ones.
+The end-to-end latency analysis still shows HPCC as the best performing algorithm and clearly shows how not window-based algoritms struggle in keeping low tail-latency levels, especially if incasts are present. However, latencies values are quite different from the ones shown in the paper, especially for algorithms that produce the highest values.
 
-The PFC analys shows how PFC is trigger almost only in no window-based algorithms, with only TIMELY+win as exception. PFC total pause time results are coherent with the PFC pause time fractions shown in the paper. It is worth noticing that we were able also to reproduce the near-zero pause time of TIMELY+win. No PFC plot was added for the no-incast experiment since no algorithm ever triggered PFC on any interface in that experiment.
+The PFC analys shows how PFC is triggered almost only in no window-based algorithms, with only TIMELY+win as an exception. PFC total pause time results are coherent with the PFC pause time fractions shown in the paper. It is worth noticing that we were able also to reproduce the near-zero pause time of TIMELY+win. No PFC plot was added for the no-incast experiment since no algorithm ever triggered PFC on any interface in that experiment.
 
 # 5. Further Exploration
 
@@ -350,7 +351,7 @@ We decided to further investigate the behavior of HPCC (w.r.t. to the state-of-a
       />
   </div>
 </center>
-For each of the three chosen distributions, we performed an analysis analogue to the section 4.2. one plus simulating the network under $50\%$ load with a $2\%$ load-equivalent incast events.
+For each of the three chosen distributions, we performed an analysis analogue to the section 4.2. and additionally simulated the network under $50\%$ load with a $2\%$ load-equivalent incast events.
 
 ## 5.1. CC algorithms comparison with different distributions results
 
@@ -543,7 +544,7 @@ For each of the three chosen distributions, we performed an analysis analogue to
 
 As we can see, HPCC outperforms any other algorithm regardless of traffic distributions or loads and has never triggered PFC pauses. This result positively answers to our question confirming HPCC as a better traffic-agnostic CC algorithm that successfuly meets the desired properties of low FCTs for short flows, minimal end-to-end latencies and zero PFC triggering. Even in presence of higher loads with incasts.
 
-More in detail, experiments with AliStorage show similar FCTs and PFC pauses proportions to the ones obtained with FB_Hadoop distribution however, the number of PFC pauses are slightly increased and end-to-end latencies distributions are more contained.
+More in detail, experiments with AliStorage show similar FCTs and PFC pauses proportions to the ones obtained with FB_Hadoop distribution, however, the number of PFC pauses are slightly increased and end-to-end latencies distributions are more contained.
 
 No PFC pauses were detected in incast-free experiments apart for CacheFollower distribution, in which TIMELY experienced $3.7\ ms$ of pause time. In general, we see how, regardless of distributions, window-based schemes tend to have almost no PFC-pauses, lower FCTs and more contained latencies distributions.
 
@@ -552,21 +553,21 @@ We notice that GoogleRPC with-incasts scenarios are the only ones that do not fo
 
 # 6. Reproducibility Assessment of the Paper
 ## 6.1 Paper evaluation
-The paper was well-organized, clearly answering to the research questions and well motivating their relevance, also sharing their experience in Alibaba Datacenters. HPCC's design was well described both with algorithm's pseudocode and comprehensive explanations of windows adjustments. In the end, we have not faced problem in understanding the techniques implemented by HPCC.
+The paper was well-organized, clearly answering to the research questions and motivating their relevance, while also sharing their experience in Alibaba Datacenters. HPCC's design was well described both with algorithm's pseudocode and comprehensive explanations of windows adjustments. In the end, we have not faced problem in understanding the techniques implemented by HPCC.
 
 Experimental results were clearly organized and described, properly stating network topologies, traffic distributions and insights on why these results were expected. However, as we pointed out in section 3.4.1., some details and definitions were missing, in particular,the authors state *PFC pause duration* as a performance metric but there was no definition on how the Fraction of pause time was computed (eg. if considering just the time in which at least one interface was paused or by summing up each pause duration). 
 
 ## 6.2 Replication Package evaluation
-We appreciated that the entire replication package was built upon an NS3 distribution, making it easier to run it an modifying it. While the generation of L3 traces was pretty straigh-forward, there are some problems we faced in further steps of our analysis:
+We appreciated that the entire replication package was built upon an NS3 distribution, making it easier to run it an modifying it. While the generation of L3 traces was pretty straigh-forward, there are some problems we faced in our analysis:
 - apart for the FCT plots, there were no scripts to easily extract from L3 traces information needed to reproduce the plots. In particular, throughput, queue lenghts, end-to-end latencies and PFC pauses durations have not been included;
-- the $W_{AI}$ parameter which the paper always state as a Window size, the artifact considered it as a rate, for which we had to deduct how to convert;
+- the $W_{AI}$ parameter which the paper always describe it as a window size, the artifact considered it as a rate, which we had to deduct how to convert;
 - one of the results we had tried to reproduce were the ones in HPCC figures 13a and 13b. The artifact does not provide any way to run the HPCC algorithm with different response-policies (just the `fast_react` flag in configuration parameters). We believe that to effectively reproduce these results is necessary to heavily modify the HPCC algorithimn outside of `rdmahw.cc`, as after a fair few attempts, our results didnt match the paper(for brevity we didnt include this in the paper).
-- in order to understand how traffic with incasts was generated in the paper's experiments we had to look at a Github issue (`#36`) opened by an user attempting to reproduce these results, since neither the paper nor the artifact provided insights on how to simulate them.
+- in order to understand how traffic with incasts was generated in the paper's experiments we had to look at a Github issue [#36](https://github.com/alibaba-edu/High-Precision-Congestion-Control/issues/36) opened by an user attempting to reproduce these results, since neither the paper nor the artifact provided insights on how to simulate them.
 
 
 # 7. Conclusion
 
-We successfuly reproduced some interesting results of the HPCC paper and we confirmed some of the main paper takeways under a deeper scrutiny.
+We successfuly reproduced some interesting results of the HPCC paper and we confirmed some of the main paper takeways under additional scrutiny.
 
 We confirmed the effectiveness of the rule of thumb suggested by the authors for $W_{AI}$ tuning.
 
